@@ -1,6 +1,7 @@
 #pragma once
 #include "lib/stdint.h"
-#define NO_ALIGNMENT __attribute__((packed))
+
+constexpr uint8_t idt_count = 24;
 
 struct NO_ALIGNMENT IDT_Descriptor
 {
@@ -13,13 +14,13 @@ struct NO_ALIGNMENT IDT_Descriptor
     uint32_t zero;          // reserved
 };
 
-static IDT_Descriptor idt[32];
+static IDT_Descriptor idt[idt_count];
 
 struct NO_ALIGNMENT IDTR {
     uint16_t limit;
     void* idt_address;
 };
 
-static IDTR idtr = {uint16_t(sizeof(IDT_Descriptor) * sizeof(idt)), idt};
+static IDTR idtr = {uint16_t(idt_count * 16 - 1), idt};
 
-extern "C" void idt_setup();
+extern "C" void idt_init();

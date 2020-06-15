@@ -1,5 +1,6 @@
 #include "lib/string.h"
 #include "interrupt.h"
+#include "gdt.h"
 
 int start_kernel();
 
@@ -8,8 +9,8 @@ extern "C" void _start() {
 }
 
 int start_kernel() {
-   idt_setup();
-   // put_int(0);
+   gdt_init();
+   idt_init();
    printk("hello world\n");
    printk("this is mos\n");
    // put_int(9);
