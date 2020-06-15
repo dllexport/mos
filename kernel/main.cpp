@@ -1,4 +1,5 @@
 #include "lib/string.h"
+#include "interrupt.h"
 
 int start_kernel();
 
@@ -7,8 +8,10 @@ extern "C" void _start() {
 }
 
 int start_kernel() {
+   idt_setup();
    // put_int(0);
-   printk("asdf");
+   printk("hello world\n");
+   printk("this is mos\n");
    // put_int(9);
    // put_char('\n');
    // put_int(0x00021a3f);

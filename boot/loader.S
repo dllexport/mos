@@ -150,7 +150,7 @@ LongMode:
    call kernel_init
    mov rsp, 0x9f000
    jmp KERNEL_ENTRY_POINT                 ; 用地址0xc0001500访问测试，结果ok
-   
+
 kernel_init:
    xor rax, rax
    xor rbx, rbx		;ebx记录程序头表地址
@@ -305,10 +305,6 @@ ALIGN 4
 .Pointer:
     dw $ - GDT - 1                    ; 16-bit Size (Limit) of GDT.
     dd GDT                            ; 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
- 
-   SELECTOR_CODE equ (0x0001<<3) + TI_GDT + RPL0         ; 相当于(CODE_DESC - GDT_BASE)/8 + TI_GDT + RPL0
-   SELECTOR_DATA equ (0x0002<<3) + TI_GDT + RPL0	 ; 同上
-   SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0	 ; 同上 
 
    ; total_mem_bytes用于保存内存容量,以字节为单位,此位置比较好记。
    ; 当前偏移loader.bin文件头0x200字节,loader.bin的加载地址是0x900,
