@@ -1,6 +1,7 @@
 #include "lib/string.h"
 #include "interrupt.h"
 #include "gdt.h"
+#include "memory.h"
 
 int start_kernel();
 
@@ -11,7 +12,9 @@ extern "C" void _start() {
 int start_kernel() {
    gdt_init();
    idt_init();
-   int i = *(int*)0xffff80000aa00000;
+   memory_init();
+   int i = *(int*)0x903;
+   printk_hex(i);
    // int j = 1 / 0;
    printk("this is mos\n");
    // put_int(9);

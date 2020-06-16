@@ -9,6 +9,19 @@
 %define DATA_SEG     0x0010
  
 SECTION loader vstart=LOADER_BASE_ADDR
+
+   jmp loader_start
+
+   ; total_mem_bytes用于保存内存容量,以字节为单位,此位置比较好记。
+   ; 当前偏移loader.bin文件头0x3字节,loader.bin的加载地址是0x9000,
+   ; 故total_mem_bytes内存中的地址是0x9003.将来在内核中咱们会引用此地址
+   total_mem_bytes dq 0					 
+   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+   ;人工对齐:total_mem_bytes4字节+gdt_ptr6字节+ards_buf244字节+ards_nr2,共256字节
+   ards_buf times 246 db 0
+   ards_nr dw 0		      ;用于记录ards结构体数量
+
 loader_start:
    
 ;-------  int 15h eax = 0000E820h ,edx = 534D4150h ('SMAP') 获取内存布局  -------
@@ -306,13 +319,4 @@ ALIGN 4
     dw $ - GDT - 1                    ; 16-bit Size (Limit) of GDT.
     dd GDT                            ; 32-bit Base Address of GDT. (CPU will zero extend to 64-bit)
 
-   ; total_mem_bytes用于保存内存容量,以字节为单位,此位置比较好记。
-   ; 当前偏移loader.bin文件头0x200字节,loader.bin的加载地址是0x900,
-   ; 故total_mem_bytes内存中的地址是0xb00.将来在内核中咱们会引用此地址
-   total_mem_bytes dd 0					 
-   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-   ;人工对齐:total_mem_bytes4字节+gdt_ptr6字节+ards_buf244字节+ards_nr2,共256字节
-   ards_buf times 244 db 0
-   ards_nr dw 0		      ;用于记录ards结构体数量
 

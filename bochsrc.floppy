@@ -39,5 +39,5 @@ com2: enabled=0
 com3: enabled=0
 com4: enabled=0
 
-megs: 32
+megs: 64
 
