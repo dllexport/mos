@@ -4,7 +4,8 @@
 
 extern "C" {
     void printk(char *str);
-
+    void printk_hex(uint64_t hex);
+    void printkf(char *str, ...);
     uint64_t strlen(char *str);
     int strcmp(const char *s1, const char *s2);
 

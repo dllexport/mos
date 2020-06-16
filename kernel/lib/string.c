@@ -1,4 +1,5 @@
 #include "string.h"
+#include <stdarg.h>
 
 struct {
 	uint8_t x;
@@ -52,7 +53,7 @@ void *memmove(void *dest, const void *src, uint64_t n)
 }
 
 
-static void putchar_at(char chr, uint8_t color, uint8_t x, uint8_t y)
+static void put_char_at(char chr, uint8_t color, uint8_t x, uint8_t y)
 {
 	unsigned char *videomem_start = (unsigned char *) 0xb8000;
 	uint16_t offset = 160*y + 2*x;
@@ -69,7 +70,7 @@ static void put_char(char chr)
 		cursor.x = 0;
 		break;
 	default:
-		putchar_at(chr, 0x07, cursor.x, cursor.y);
+		put_char_at(chr, 0x07, cursor.x, cursor.y);
 		++cursor.x;
 	}
 }
@@ -87,3 +88,100 @@ void printk(char *str)
 		put_char(str[i]);
 	}
 }
+
+void printk_hex(uint64_t hex)
+{
+	static int iters = 0;
+	char hex_str[] = "0x0000000000000000";
+
+	for (int i = 17; i >= 2; --i) {
+		unsigned char nibble = hex & 0xF;
+		char hex_chr = '0' + nibble;
+		if (nibble > 9) {
+			hex_chr += 7;
+		}
+		hex_str[i] = hex_chr;
+		hex /= 16;
+	}
+	printk(hex_str);
+
+	++iters;
+}
+
+// void printf(char *str, ...)
+// {
+//     va_list arg;
+//     va_start(arg, str);
+//     int zero, cnt;
+
+//     while(*str)
+//     {
+//         if (*str == '%')
+//         {
+//             str++;
+//             zero = cnt = 0;
+//             if (*str <= '9' && *str >= '0')
+//             {
+//                 zero = !(*str - '0'), cnt = 0;
+//                 for (;*str <= '9' && *str >= 0;str++)
+//                 {
+//                     cnt *= 10;
+//                     cnt += *str - '0';
+//                 }
+//             }
+//             if (*str == 'd')
+//                 puti(va_arg(arg, int), cnt, zero);
+//             else if (*str == 'c')
+//                 put_char((char)va_arg(arg, int));
+//             else if (*str == 's')
+//                 puts((char *)va_arg(arg, char*));
+//             else if (*str == 'x')
+//                 putx(va_arg(arg, long), 0, cnt, zero);
+//             else if (*str == 'X')
+//                 putx(va_arg(arg, long), 1, cnt, zero);
+//             else if (*str == 'l' && *(str + 1) == 'd')
+//             {
+//                 str++;
+//                 putl(va_arg(arg, long), cnt, zero);
+//             }
+//             else if (*str == 'u')
+//             {
+//                 str++;
+//                 if (*str == 'd')
+//                     putui(va_arg(arg, int), cnt, zero);
+//                 else if (*str == 'x')
+//                     putux(va_arg(arg, long), 0, cnt, zero);
+//                 else if (*str == 'X')
+//                     putux(va_arg(arg, long), 1, cnt, zero);
+//                 else if (*str == 'l' && *(str + 1) == 'd')
+//                 {
+//                     str++;
+//                     putl(va_arg(arg, long), cnt, zero);
+//                 }
+//             }
+//             else
+//                 put_char(*str);
+//         }
+//         else if (*str == '\n')
+//         {
+//             Pos.YPosition += Pos.YCharSize;
+//             Pos.XPosition = 0;
+//             Pos.YPosition %= Pos.YResolution;
+//         }
+//         else if (*str == '\t')
+//         {
+//             char tmp[50];
+//             int i, cnt = 4 - Pos.XPosition / Pos.XCharSize % 4;
+//             for (i = 0;i < cnt; i++)
+//                 tmp[i] = ' ';
+//             tmp[i] = '\0';
+//             puts(tmp);
+//         }
+//         else if (*str == '\b')
+//             TranslateX(-1);
+//         else
+//             put_char(*str);
+//         str++;
+//     }
+//     va_end(arg);
+// }

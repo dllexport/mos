@@ -11,7 +11,8 @@ extern "C" void _start() {
 int start_kernel() {
    gdt_init();
    idt_init();
-   printk("hello world\n");
+   int i = *(int*)0xffff80000aa00000;
+   // int j = 1 / 0;
    printk("this is mos\n");
    // put_int(9);
    // put_char('\n');

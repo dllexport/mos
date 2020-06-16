@@ -2,6 +2,7 @@
 #include "lib/stdint.h"
 #define CODE_SEG 0x0008
 #define DATA_SEG 0x0010
+#define TSS_SEG 0x0028
 
 static uint64_t gdt_table[8] = {
     0x0000000000000000,
