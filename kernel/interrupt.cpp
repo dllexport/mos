@@ -1,7 +1,7 @@
 #include "interrupt.h"
 #include "lib/string.h"
 #include "gdt.h"
-
+#include "memory.h"
 enum IDT_Descriptor_Type
 {
     INTERRUPT = 0x8E,
@@ -49,7 +49,8 @@ extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
     printk_hex(rsp);
     printk("\n");
     printk("divide error");
-    while (1);
+    while (1)
+        ;
 }
 
 extern "C" void handle_debug_error(uint64_t rsp, uint64_t error_code)
@@ -57,7 +58,8 @@ extern "C" void handle_debug_error(uint64_t rsp, uint64_t error_code)
     printk_hex(rsp);
     printk("\n");
     printk("debug error");
-    while (1);
+    while (1)
+        ;
 }
 
 extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
@@ -65,7 +67,8 @@ extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
     printk_hex(rsp);
     printk("\n");
     printk("mni error");
-    while (1);
+    while (1)
+        ;
 }
 
 extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
@@ -73,14 +76,16 @@ extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
     printk_hex(rsp);
     printk("\n");
     printk("nmi error");
-    while (1);
+    while (1)
+        ;
 }
 extern "C" void handle_int3_error(uint64_t rsp, uint64_t error_code)
 {
     printk_hex(rsp);
     printk("\n");
     printk("int3 error");
-    while (1);
+    while (1)
+        ;
 }
 
 extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
@@ -88,14 +93,16 @@ extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
     printk_hex(rsp);
     printk("\n");
     printk("tss error");
-    while (1);
+    while (1)
+        ;
 }
 extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
 {
     printk_hex(rsp);
     printk("\n");
     printk("page_fault error");
-    while (1);
+    while (1)
+        ;
 }
 extern "C" void divide_error();
 extern "C" void debug_error();
@@ -105,11 +112,11 @@ extern "C" void page_fault_error();
 
 void idt_init()
 {
-    set_trap_gate(0, 1, reinterpret_cast<void *>(&divide_error));
-    set_trap_gate(1, 1, reinterpret_cast<void *>(&debug_error));
-    set_intr_gate(2, 1, reinterpret_cast<void *>(&nmi_error));
-    set_system_gate(3, 1, reinterpret_cast<void *>(&int3_error));
-    set_trap_gate(14, 1, reinterpret_cast<void *>(&page_fault_error));
+    set_trap_gate(0, 1, Phy_To_Virt((void *)(&divide_error)));
+    set_trap_gate(1, 1, Phy_To_Virt((void *)(&debug_error)));
+    set_intr_gate(2, 1, Phy_To_Virt((void *)(&nmi_error)));
+    set_system_gate(3, 1, Phy_To_Virt((void *)(&int3_error)));
+    set_trap_gate(14, 1, Phy_To_Virt((void *)(&page_fault_error)));
     load_idt(&idtr);
     printk("idt_init\n");
 }

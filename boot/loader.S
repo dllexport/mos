@@ -104,6 +104,11 @@ loader_start:
    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writeable flag.
    mov [es:di + 0x2008], eax         ; Store to value of EAX as the first PDE.
 
+   ; for 4-6m
+   lea eax, [es:di + 0x5000]         ; Put the address of the Page Table in to EAX.
+   or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writeable flag.
+   mov [es:di + 0x2010], eax         ; Store to value of EAX as the first PDE.
+
    push di                           ; Save DI for the time being.
    lea di, [di + 0x3000]             ; Point DI to the page table.
    mov eax, PAGE_PRESENT | PAGE_WRITE    ; Move the flags into EAX - and point it to 0x0000.
@@ -125,6 +130,16 @@ loader_start:
    add di, 8
    cmp eax, 0x400000                 ; If we did all 2MiB, end.
    jb .build4MTable
+
+   mov di, FREE_SPACE + 0x5000           ; Point DI to the page table.
+   mov eax, PAGE_PRESENT | PAGE_WRITE    ; Move the flags into EAX - and point it to 0x0000.
+   xor eax, 0x400000
+.build6MTable:
+   mov [es:di], eax
+   add eax, 0x1000
+   add di, 8
+   cmp eax, 0x600000                 ; If we did all 2MiB, end.
+   jb .build6MTable
 
    pop di                            ; Restore DI.
  
@@ -179,8 +194,9 @@ LongMode:
    call rd_disk_m_32
 
    call kernel_init
-   mov rsp, 0x9f000
-   jmp KERNEL_ENTRY_POINT                 ; 用地址0xc0001500访问测试，结果ok
+   mov rsp, 0x9f000 + 0xffffff8000000000 
+   mov rax, KERNEL_ENTRY_POINT
+   jmp rax                 
 
 kernel_init:
    xor rax, rax

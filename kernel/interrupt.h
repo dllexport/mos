@@ -1,5 +1,6 @@
 #pragma once
 #include "lib/stdint.h"
+#include "memory.h"
 
 constexpr uint8_t idt_count = 24;
 
@@ -21,6 +22,6 @@ struct NO_ALIGNMENT IDTR {
     void* idt_address;
 };
 
-static IDTR idtr = {uint16_t(idt_count * 16 - 1), idt};
+static IDTR idtr = {uint16_t(idt_count * 16 - 1), Phy_To_Virt(idt)};
 
 extern "C" void idt_init();

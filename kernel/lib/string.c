@@ -1,11 +1,11 @@
 #include "string.h"
 #include <stdarg.h>
 
-struct {
-	uint8_t x;
-	uint8_t y;
+struct
+{
+    uint8_t x;
+    uint8_t y;
 } cursor = {0, 0};
-
 
 uint64_t strlen(char *str)
 {
@@ -17,95 +17,112 @@ uint64_t strlen(char *str)
 
 int strcmp(const char *s1, const char *s2)
 {
-	while (*s1 != 0 && *s1 == *s2)
-		++s1, ++s2;
-	return *s1 - *s2;
+    while (*s1 != 0 && *s1 == *s2)
+        ++s1, ++s2;
+    return *s1 - *s2;
 }
 
-void *memcpy(void * dest, const void * src, uint64_t n)
+void memset(void *addr, uint8_t val, uint64_t size)
 {
-	char * dest_c = (char*)dest;
-	const char * src_c = (char*)src;
+    for (uint64_t i = 0; i < size; ++i)
+    {
+        *((char *)addr + i) = val;
+    }
+}
 
-	for (uint64_t i = 0; i < n; ++i) {
-		dest_c[i] = src_c[i];
-	}
+void *memcpy(void *dest, const void *src, uint64_t n)
+{
+    char *dest_c = (char *)dest;
+    const char *src_c = (char *)src;
 
-	return dest;
+    for (uint64_t i = 0; i < n; ++i)
+    {
+        dest_c[i] = src_c[i];
+    }
+
+    return dest;
 }
 
 void *memmove(void *dest, const void *src, uint64_t n)
 {
-	// Possibly undefined behaviour
-	if (src > dest) {
-		return memcpy(dest, src, n);
-	} else {
-		char *dest_c = (char*)dest;
-		const char *src_c = (char*)src;
+    // Possibly undefined behaviour
+    if (src > dest)
+    {
+        return memcpy(dest, src, n);
+    }
+    else
+    {
+        char *dest_c = (char *)dest;
+        const char *src_c = (char *)src;
 
-		// We can't do >= 0 because unsigned
-		for (uint64_t i = n; i > 0; --i) {
-			dest_c[i-1] = src_c[i-1];
-		}
+        // We can't do >= 0 because unsigned
+        for (uint64_t i = n; i > 0; --i)
+        {
+            dest_c[i - 1] = src_c[i - 1];
+        }
 
-		return dest;
-	}
+        return dest;
+    }
 }
-
 
 static void put_char_at(char chr, uint8_t color, uint8_t x, uint8_t y)
 {
-	unsigned char *videomem_start = (unsigned char *) 0xb8000;
-	uint16_t offset = 160*y + 2*x;
+    unsigned char *videomem_start = (unsigned char *)(0xffffff8000000000 + 0xb8000);
+    uint16_t offset = 160 * y + 2 * x;
 
-	videomem_start[offset] = (unsigned char) chr;
-	videomem_start[offset + 1] = color;
+    videomem_start[offset] = (unsigned char)chr;
+    videomem_start[offset + 1] = color;
 }
 
 static void put_char(char chr)
 {
-	switch (chr) {
-	case '\n':
-		++cursor.y;
-		cursor.x = 0;
-		break;
-	default:
-		put_char_at(chr, 0x07, cursor.x, cursor.y);
-		++cursor.x;
-	}
+    switch (chr)
+    {
+    case '\n':
+        ++cursor.y;
+        cursor.x = 0;
+        break;
+    default:
+        put_char_at(chr, 0x07, cursor.x, cursor.y);
+        ++cursor.x;
+    }
 }
 
 void printk(char *str)
 {
-	unsigned char *videomem_start = (unsigned char *) 0xb8000;
+    unsigned char *videomem_start = (unsigned char *)(0xffffff8000000000 + 0xb8000);
 
-	if (cursor.y >= 24) {
-		memmove(videomem_start, videomem_start+160, 160*24);
-	}
+    if (cursor.y >= 24)
+    {
+        memmove(videomem_start, videomem_start + 160, 160 * 24);
+    }
 
-	auto len = strlen(str);
-	for (auto i = 0; i < len; i++) {
-		put_char(str[i]);
-	}
+    auto len = strlen(str);
+    for (auto i = 0; i < len; i++)
+    {
+        put_char(str[i]);
+    }
 }
 
 void printk_hex(uint64_t hex)
 {
-	static int iters = 0;
-	char hex_str[] = "0x0000000000000000";
+    static int iters = 0;
+    char hex_str[] = "0x0000000000000000";
 
-	for (int i = 17; i >= 2; --i) {
-		unsigned char nibble = hex & 0xF;
-		char hex_chr = '0' + nibble;
-		if (nibble > 9) {
-			hex_chr += 7;
-		}
-		hex_str[i] = hex_chr;
-		hex /= 16;
-	}
-	printk(hex_str);
+    for (int i = 17; i >= 2; --i)
+    {
+        unsigned char nibble = hex & 0xF;
+        char hex_chr = '0' + nibble;
+        if (nibble > 9)
+        {
+            hex_chr += 7;
+        }
+        hex_str[i] = hex_chr;
+        hex /= 16;
+    }
+    printk(hex_str);
 
-	++iters;
+    ++iters;
 }
 
 // void printf(char *str, ...)
