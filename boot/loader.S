@@ -83,31 +83,49 @@ loader_start:
    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
    mov [es:di], eax                  ; Store the value of EAX as the first PML4E.
  
+   ; map 0xffff8000 to 0, 11111111 11111111 10000000 00000000 --> 0
+   ; so the pml4 and pde is 111111111 111111111 (nine 1)
+   ; the last one, which is 111111111
+   mov [es:di + 0xff8], eax                  ; Store the value of EAX as the first PML4E.
  
    ; Build the Page Directory Pointer Table.
    lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
    mov [es:di + 0x1000], eax         ; Store the value of EAX as the first PDPTE.
+
  
- 
-   ; Build the Page Directory.
+   ; Build the Page Directory for 0-2m
    lea eax, [es:di + 0x3000]         ; Put the address of the Page Table in to EAX.
    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writeable flag.
    mov [es:di + 0x2000], eax         ; Store to value of EAX as the first PDE.
- 
- 
+
+   ; for 2-4m
+   lea eax, [es:di + 0x4000]         ; Put the address of the Page Table in to EAX.
+   or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writeable flag.
+   mov [es:di + 0x2008], eax         ; Store to value of EAX as the first PDE.
+
    push di                           ; Save DI for the time being.
    lea di, [di + 0x3000]             ; Point DI to the page table.
    mov eax, PAGE_PRESENT | PAGE_WRITE    ; Move the flags into EAX - and point it to 0x0000.
 
    ; Build the Page Table.
-.LoopPageTable:
+.build2MTable:
    mov [es:di], eax
    add eax, 0x1000
    add di, 8
    cmp eax, 0x200000                 ; If we did all 2MiB, end.
-   jb .LoopPageTable
- 
+   jb .build2MTable
+
+   mov di, FREE_SPACE + 0x4000           ; Point DI to the page table.
+   mov eax, PAGE_PRESENT | PAGE_WRITE    ; Move the flags into EAX - and point it to 0x0000.
+   xor eax, 0x200000
+.build4MTable:
+   mov [es:di], eax
+   add eax, 0x1000
+   add di, 8
+   cmp eax, 0x400000                 ; If we did all 2MiB, end.
+   jb .build4MTable
+
    pop di                            ; Restore DI.
  
    ; Disable IRQs
@@ -138,7 +156,7 @@ loader_start:
    mov cr0, ebx                    
  
    lgdt [GDT.Pointer]                ; Load GDT.Pointer defined below.
- 
+   
    jmp CODE_SEG:LongMode             ; Load CS with 64 bit segment and flush the instruction cache
 
 .error_hlt:		      ;出错则挂起
