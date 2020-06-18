@@ -3,6 +3,8 @@
 #include "gdt.h"
 #include "memory.h"
 #include "memory_flag.h"
+#include "task.h"
+
 int start_kernel();
 
 extern "C" void _start()
@@ -20,8 +22,7 @@ int start_kernel()
    idt_init();
 
    printk("this is mos\n");
-   auto page = alloc_pages(8192 * 2, PG_PTable_Maped | PG_Kernel | PG_Active);
-
+   task_init();
    // put_int(9);
    // put_char('\n');
    // put_int(0x00021a3f);
