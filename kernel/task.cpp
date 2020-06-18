@@ -10,9 +10,16 @@ static TSS_STRUCT init_task_tss;
 static task_struct *init_task;
 extern "C" unsigned long do_exit(unsigned long code)
 {
+    printk("init2 finished\n");
+
     while (1)
         ;
 }
+
+// we pop all pt_regs out
+// then restore the stack to rsp0(stack base)
+// then call the fn
+// then do_exit
 extern "C" void kernel_thread_func(void);
 __asm__(
     "kernel_thread_func:	\n\t"
@@ -41,17 +48,81 @@ __asm__(
     "	movq	%rax,	%rdi	\n\t"
     "	callq	do_exit		\n\t");
 
+static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags);
+
+uint64_t init2(uint64_t arg)
+{
+    printk("this is init 2\n");
+}
+
 uint64_t init(uint64_t arg)
 {
     printk("this is init thread\n");
-       auto i = 1 / 0;
 
+    create_kernel_thread(&init2, 1, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
+
+    auto next = list_next(&current->list);
+    auto p = (task_struct *)next;
+    printk("current rsp :");
+    printk_hex(uint64_t(p->thread->rsp0));
+    printk(" next rip :");
+    printk_hex(uint64_t(p->thread->rip));
+    printk("\n");
+
+    switch_to(current, p);
     while (1)
         ;
 }
-
-static int create_kernel_thread(task_struct *task, uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags)
+unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
 {
+
+    auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
+
+    auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + 1);
+
+    auto task = (task_struct *)Phy_To_Virt(page->physical_address);
+
+    memset(task, 0, sizeof(*task));
+    // *task = *current;
+
+    list_init(&task->list);
+    list_add_to_behind(&init_task->list, &task->list);
+    task->pid++;
+    task->state = TASK_UNINTERRUPTIBLE;
+
+    auto next = list_next(&init_task->list);
+    auto p = (task_struct *)next;
+    auto p_cur = current;
+
+    // place thread_struct after task_struct
+    auto thread = (struct thread_struct *)(task + 1);
+    task->thread = thread;
+
+    // copy to regs to the stack end
+    memcpy((void *)((uint8_t *)task + STACK_SIZE - sizeof(struct pt_regs)), regs, sizeof(struct pt_regs));
+
+    // stack end is equal to stack base
+    thread->rsp0 = (uint64_t)task + STACK_SIZE;
+    thread->rip = regs->rip;
+    // the real stack points stack end - pt_regs
+    thread->rsp = (uint64_t)task + STACK_SIZE - sizeof(struct pt_regs);
+
+    if (!(clone_flags & PF_KTHREAD))
+    {
+        task->flags ^= PF_KTHREAD;
+        thread->rip = 0x0;
+    }
+
+    // thd->rip = regs->rip = (unsigned long)ret_from_intr;
+
+    task->state = TASK_RUNNING;
+
+    return 0;
+}
+
+static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags)
+{
+
     struct pt_regs regs;
     memset(&regs, 0, sizeof(regs));
 
@@ -62,39 +133,21 @@ static int create_kernel_thread(task_struct *task, uint64_t (*fn)(uint64_t), uin
     regs.es = KERNEL_DS;
     regs.cs = KERNEL_CS;
     regs.ss = KERNEL_DS;
-    regs.rflags = (1 << 9);
-    regs.rip = (uint64_t)fn;
+    regs.rflags = (1 << 9); // interrupt enable
+    regs.rip = (uint64_t)Phy_To_Virt(kernel_thread_func);
 
-    // place thread_struct after task_struct
-    auto thread = (struct thread_struct *)(task + 1);
-    task->thread = thread;
-    thread->fs = KERNEL_DS;
-    thread->gs = KERNEL_DS;
-    thread->cr2 = 0;
-    thread->trap_nr = 0;
-    thread->error_code = 0;
-    // copy to regs to the stack end
-    memcpy((void *)((uint8_t *)task + STACK_SIZE - sizeof(struct pt_regs)), &regs, sizeof(struct pt_regs));
-    // stack end is equal to stack base
-    thread->rsp0 = (uint64_t)task + STACK_SIZE;
-    thread->rip = regs.rip;
-    // the real stack points stack end - pt_regs
-    thread->rsp = (uint64_t)task + STACK_SIZE - sizeof(struct pt_regs);
-
-    task->state = TASK_RUNNING;
-
-    return 0;
+    return do_fork(&regs, flags | PF_KTHREAD);
 }
 
 void task_init()
 {
 
-    auto page = alloc_pages(STACK_SIZE / PAGE_4K_SIZE, PG_PTable_Maped | PG_Kernel | PG_Active);
+    auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
 
-    auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + STACK_SIZE);
-    
+    auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + PAGE_4K_SIZE);
+
     auto ist = (uint64_t)Phy_To_Virt(0x0000000000007c00);
-    
+
     init_task_tss =
         {.reserved1 = 0,
          .rsp0 = stack_start,
@@ -113,6 +166,9 @@ void task_init()
          .io_map_base_addr = 0};
 
     init_task = (task_struct *)Phy_To_Virt(page->physical_address);
+    printk("init task: ");
+    printk_hex(uint64_t(init_task));
+    printk("\n");
     memset(init_task, 0, STACK_SIZE);
 
     list_init(&init_task->list);
@@ -142,15 +198,12 @@ void task_init()
     init_task->state = TASK_RUNNING;
 
     set_tss(init_task_tss);
-    // set_tss(init_task_tss.rsp0, init_task_tss.rsp1, init_task_tss.rsp2, init_task_tss.ist1, init_task_tss.ist2, init_task_tss.ist3, init_task_tss.ist4, init_task_tss.ist5, init_task_tss.ist6, init_task_tss.ist7);
-    //             auto i = 1/ 0;
 
     asm __volatile__("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
     asm __volatile__("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
     asm __volatile__("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
     asm __volatile__("push  %0 \n\t" ::"a"(init_task->thread->rip));
     asm __volatile__("retq");
-
 }
 
 INIT_TASK_STATE &get_init_task_state()
@@ -168,8 +221,10 @@ extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
 
     auto &task_tss = get_init_task_tss();
     task_tss.rsp0 = next->thread->rsp0;
+    task_tss.rsp1 = next->thread->rsp0;
+    task_tss.rsp2 = next->thread->rsp0;
 
-    set_tss(task_tss.rsp0, task_tss.rsp1, task_tss.rsp2, task_tss.ist1, task_tss.ist2, task_tss.ist3, task_tss.ist4, task_tss.ist5, task_tss.ist6, task_tss.ist7);
+    set_tss(task_tss);
 
     __asm__ __volatile__("movq	%%fs,	%0 \n\t"
                          : "=a"(prev->thread->fs));
@@ -178,43 +233,4 @@ extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
 
     __asm__ __volatile__("movq	%0,	%%fs \n\t" ::"a"(next->thread->fs));
     __asm__ __volatile__("movq	%0,	%%gs \n\t" ::"a"(next->thread->gs));
-}
-
-unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags, unsigned long stack_start, unsigned long stack_size)
-{
-    struct task_struct *tsk = nullptr;
-    struct thread_struct *thd = nullptr;
-    struct Page *p = nullptr;
-
-    p = alloc_pages(8, PG_PTable_Maped | PG_Active | PG_Kernel);
-
-    tsk = (struct task_struct *)Phy_To_Virt(p->physical_address);
-
-    memset(tsk, 0, sizeof(*tsk));
-    *tsk = *current;
-
-    list_init(&tsk->list);
-    list_add_to_before(&init_task->list, &tsk->list);
-    tsk->pid++;
-    tsk->state = TASK_UNINTERRUPTIBLE;
-
-    // place thread_struct after task_struct
-    thd = (struct thread_struct *)(tsk + 1);
-    tsk->thread = thd;
-
-    // copy to regs to the stack end
-    memcpy((void *)((uint8_t *)tsk + STACK_SIZE - sizeof(struct pt_regs)), regs, sizeof(struct pt_regs));
-
-    // stack end is equal to stack base
-    thd->rsp0 = (uint64_t)tsk + STACK_SIZE;
-    thd->rip = regs->rip;
-    // the real stack points stack end - pt_regs
-    thd->rsp = (uint64_t)tsk + STACK_SIZE - sizeof(struct pt_regs);
-
-    if (!(tsk->flags & PF_KTHREAD))
-        // thd->rip = regs->rip = (unsigned long)ret_from_intr;
-
-        tsk->state = TASK_RUNNING;
-
-    return 0;
 }

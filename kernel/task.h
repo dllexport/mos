@@ -19,9 +19,9 @@
 #define TASK_STOPPED (1 << 4)
 
 // options for creating task
-#define CLONE_FS	(1 << 0)
-#define CLONE_FILES	(1 << 1)
-#define CLONE_SIGNAL	(1 << 2)
+#define CLONE_FS (1 << 0)
+#define CLONE_FILES (1 << 1)
+#define CLONE_SIGNAL (1 << 2)
 
 struct mm_struct
 {
@@ -72,7 +72,7 @@ struct task_struct
     uint64_t priority;
 };
 
-constexpr uint64_t STACK_SIZE = 32768;
+constexpr uint64_t STACK_SIZE = 4096;
 
 union task_union {
     struct task_struct task;
@@ -108,7 +108,7 @@ inline struct task_struct *get_current()
     struct task_struct *current = nullptr;
     __asm__ __volatile__("andq %%rsp,%0	\n\t"
                          : "=r"(current)
-                         : "0"(~32767UL));
+                         : "0"(~4095UL));
     return current;
 }
 
@@ -116,43 +116,24 @@ inline struct task_struct *get_current()
 
 #define GET_CURRENT        \
     "movq	%rsp,	%rbx	\n\t" \
-    "andq	$-32768,%rbx	\n\t"
+    "andq	$-4095,%rbx	\n\t"
 
 // params rdi, rsi
-#define switch_to(prev,next)			\
-do{							\
-	__asm__ __volatile__ (	"pushq	%%rbp	\n\t"	\
-				"pushq	%%rax	\n\t"	\
-				"movq	%%rsp,	%0	\n\t"	\
-				"movq	%2,	%%rsp	\n\t"	\
-				"leaq	1f(%%rip),	%%rax	\n\t"	\
-				"movq	%%rax,	%1	\n\t"	\
-				"pushq	%3		\n\t"	\
-				"jmp	__switch_to	\n\t"	\
-				"1:	\n\t"	\
-				"popq	%%rax	\n\t"	\
-				"popq	%%rbp	\n\t"	\
-				:"=m"(prev->thread->rsp),"=m"(prev->thread->rip)		\
-				:"m"(next->thread->rsp),"m"(next->thread->rip),"D"(prev),"S"(next)	\
-				:"memory"		\
-				);			\
-}while(0)
-
-#define force_switch_to(prev,next)			\
-do{							\
-	__asm__ __volatile__ (	"pushq	%%rbp	\n\t"	\
-				"pushq	%%rax	\n\t"	\
-				"movq	%%rsp,	%0	\n\t"	\
-				"movq	%2,	%%rsp	\n\t"	\
-				"leaq	1f(%%rip),	%%rax	\n\t"	\
-				"movq	%%rax,	%1	\n\t"	\
-				"pushq	%3		\n\t"	\
-				"jmp	__switch_to	\n\t"	\
-				"1:	\n\t"	\
-				"popq	%%rax	\n\t"	\
-				"popq	%%rbp	\n\t"	\
-				:"=m"(prev->thread->rsp),"=m"(prev->thread->rip)		\
-				:"m"(next->thread->rsp),"m"(next->thread->rip),"D"(prev),"S"(next)	\
-				:"memory"		\
-				);			\
-}while(0)
+#define switch_to(prev, next)                                                                       \
+    do                                                                                              \
+    {                                                                                               \
+        __asm__ __volatile__("pushq	%%rbp	\n\t"                                                     \
+                             "pushq	%%rax	\n\t"                                                     \
+                             "movq	%%rsp,	%0	\n\t"                                                  \
+                             "movq	%2,	%%rsp	\n\t"                                                  \
+                             "leaq	1f(%%rip),	%%rax	\n\t"                                           \
+                             "movq	%%rax,	%1	\n\t"                                                  \
+                             "pushq	%3		\n\t"                                                       \
+                             "jmp	__switch_to	\n\t"                                                 \
+                             "1:	\n\t"                                                              \
+                             "popq	%%rax	\n\t"                                                      \
+                             "popq	%%rbp	\n\t"                                                      \
+                             : "=m"(prev->thread->rsp), "=m"(prev->thread->rip)                     \
+                             : "m"(next->thread->rsp), "m"(next->thread->rip), "D"(prev), "S"(next) \
+                             : "memory");                                                           \
+    } while (0)

@@ -21,8 +21,8 @@ constexpr uint64_t PAGE_4K_MASK = (~(PAGE_4K_SIZE - 1));
 // round up the addr to 4k boundary
 #define PAGE_4K_ALIGN(addr) (((uint64_t)(addr) + PAGE_4K_SIZE - 1) & PAGE_4K_MASK)
 
-#define Virt_To_Phy(addr) ((uint64_t *)(addr)-PAGE_OFFSET)
-#define Phy_To_Virt(addr) ((uint64_t *)((uint8_t *)(addr) + PAGE_OFFSET))
+#define Virt_To_Phy(addr) ((uint8_t *)(addr)-PAGE_OFFSET)
+#define Phy_To_Virt(addr) ((uint8_t *)((uint8_t *)(addr) + PAGE_OFFSET))
 
 #define Virt_To_2M_Page(kaddr) (memory_management_struct.pages_struct + (Virt_To_Phy(kaddr) >> PAGE_2M_SHIFT))
 #define Phy_to_2M_Page(kaddr) (memory_management_struct.pages_struct + ((unsigned long)(kaddr) >> PAGE_2M_SHIFT))
