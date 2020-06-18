@@ -43,5 +43,6 @@ public:
 };
 
 extern "C" void tss_init();
-extern "C" void set_tss(uint64_t rsp0, uint64_t rsp1, uint64_t rsp2, uint64_t ist1, uint64_t ist2, uint64_t ist3,
-             uint64_t ist4, uint64_t ist5, uint64_t ist6, uint64_t ist7);
+void set_tss(uint64_t rsp0, uint64_t rsp1, uint64_t rsp2, uint64_t ist1, uint64_t ist2, uint64_t ist3,
+                        uint64_t ist4, uint64_t ist5, uint64_t ist6, uint64_t ist7);
+void set_tss(TSS_STRUCT &new_tss);

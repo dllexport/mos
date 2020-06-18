@@ -44,7 +44,10 @@ __asm__(
 uint64_t init(uint64_t arg)
 {
     printk("this is init thread\n");
-    while(1);
+       auto i = 1 / 0;
+
+    while (1)
+        ;
 }
 
 static int create_kernel_thread(task_struct *task, uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags)
@@ -85,23 +88,26 @@ static int create_kernel_thread(task_struct *task, uint64_t (*fn)(uint64_t), uin
 
 void task_init()
 {
+
     auto page = alloc_pages(STACK_SIZE / PAGE_4K_SIZE, PG_PTable_Maped | PG_Kernel | PG_Active);
 
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + STACK_SIZE);
-
+    
+    auto ist = (uint64_t)Phy_To_Virt(0x0000000000007c00);
+    
     init_task_tss =
         {.reserved1 = 0,
          .rsp0 = stack_start,
          .rsp1 = stack_start,
          .rsp2 = stack_start,
          .reserved2 = 0,
-         .ist1 = 0xffff800000007c00,
-         .ist2 = 0xffff800000007c00,
-         .ist3 = 0xffff800000007c00,
-         .ist4 = 0xffff800000007c00,
-         .ist5 = 0xffff800000007c00,
-         .ist6 = 0xffff800000007c00,
-         .ist7 = 0xffff800000007c00,
+         .ist1 = ist,
+         .ist2 = ist,
+         .ist3 = ist,
+         .ist4 = ist,
+         .ist5 = ist,
+         .ist6 = ist,
+         .ist7 = ist,
          .reserved3 = 0,
          .reserved4 = 0,
          .io_map_base_addr = 0};
@@ -125,21 +131,26 @@ void task_init()
     init_task_mm.page = Get_CR3();
     init_task_mm.start_stack = stack_start;
 
-    create_kernel_thread(init_task, &init, 10, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
+    auto thread = (struct thread_struct *)(init_task + 1);
+    init_task->thread = thread;
+    thread->fs = KERNEL_DS;
+    thread->gs = KERNEL_DS;
+    thread->rsp0 = (uint64_t)init_task + STACK_SIZE;
+    thread->rsp = (uint64_t)init_task + STACK_SIZE;
+    thread->rip = uint64_t(&init);
+    // the real stack points stack end - pt_regs
+    init_task->state = TASK_RUNNING;
 
-    set_tss(init_task_tss.rsp0, init_task_tss.rsp1, init_task_tss.rsp2, init_task_tss.ist1, init_task_tss.ist2, init_task_tss.ist3, init_task_tss.ist4, init_task_tss.ist5, init_task_tss.ist6, init_task_tss.ist7);
-    
+    set_tss(init_task_tss);
+    // set_tss(init_task_tss.rsp0, init_task_tss.rsp1, init_task_tss.rsp2, init_task_tss.ist1, init_task_tss.ist2, init_task_tss.ist3, init_task_tss.ist4, init_task_tss.ist5, init_task_tss.ist6, init_task_tss.ist7);
+    //             auto i = 1/ 0;
+
     asm __volatile__("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
     asm __volatile__("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
     asm __volatile__("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
     asm __volatile__("push  %0 \n\t" ::"a"(init_task->thread->rip));
-    printk_hex(init_task->thread->rip);
     asm __volatile__("retq");
-    // asm __volatile__("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
-    // asm __volatile__("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
-    // asm __volatile__("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
-    // asm __volatile__("movq	push %0 \n\t" ::"m"(init_task->thread->rip));
-    // switch_to(current, init_task);
+
 }
 
 INIT_TASK_STATE &get_init_task_state()
