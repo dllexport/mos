@@ -1,5 +1,6 @@
 #pragma once
 #include "lib/stdint.h"
+#include "lib/string.h"
 
 // the virtual memory that kernel start, mapped to physical 0x0
 constexpr uint64_t PAGE_OFFSET = 0xffffff8000000000;
@@ -20,8 +21,8 @@ constexpr uint64_t PAGE_4K_MASK = (~(PAGE_4K_SIZE - 1));
 // round up the addr to 4k boundary
 #define PAGE_4K_ALIGN(addr) (((uint64_t)(addr) + PAGE_4K_SIZE - 1) & PAGE_4K_MASK)
 
-#define Virt_To_Phy(addr) ((uint64_t*)(addr)-PAGE_OFFSET)
-#define Phy_To_Virt(addr) ((uint64_t*)((uint8_t*)(addr) + PAGE_OFFSET))
+#define Virt_To_Phy(addr) ((uint64_t *)(addr)-PAGE_OFFSET)
+#define Phy_To_Virt(addr) ((uint64_t *)((uint8_t *)(addr) + PAGE_OFFSET))
 
 #define Virt_To_2M_Page(kaddr) (memory_management_struct.pages_struct + (Virt_To_Phy(kaddr) >> PAGE_2M_SHIFT))
 #define Phy_to_2M_Page(kaddr) (memory_management_struct.pages_struct + ((unsigned long)(kaddr) >> PAGE_2M_SHIFT))
@@ -81,11 +82,11 @@ public:
 
     static const uint32_t &GetAvailable4kPageCount()
     {
-        return total_available_4k_page_length;
+        return E820Descriptor::total_available_4k_page_length;
     }
     static const void SetAvailable4kPageCount(uint64_t len)
     {
-        total_available_4k_page_length += len;
+        E820Descriptor::total_available_4k_page_length += len;
     }
 };
 
@@ -188,6 +189,7 @@ struct MemoryDescriptor
 
             ++next_bit;
         }
+
         return bit_idx_start;
     }
 
@@ -235,4 +237,8 @@ struct MemoryDescriptor
     }
 };
 
-extern "C" void memory_init();
+extern "C"
+{
+    void memory_init();
+    Page *alloc_pages(uint32_t page_count, uint64_t page_flags);
+}

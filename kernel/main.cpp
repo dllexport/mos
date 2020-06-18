@@ -2,7 +2,7 @@
 #include "interrupt.h"
 #include "gdt.h"
 #include "memory.h"
-
+#include "memory_flag.h"
 int start_kernel();
 
 extern "C" void _start()
@@ -11,7 +11,7 @@ extern "C" void _start()
 }
 static inline void load_gdt(struct GDTP *p)
 {
-    __asm__("lgdt %0" ::"m"(*p));
+   __asm__("lgdt %0" ::"m"(*p));
 }
 int start_kernel()
 {
@@ -19,10 +19,8 @@ int start_kernel()
    gdt_init();
    idt_init();
 
-
-
-   // int j = 1 / 0;
    printk("this is mos\n");
+   auto page = alloc_pages(8192 * 2, PG_PTable_Maped | PG_Kernel | PG_Active);
 
    // put_int(9);
    // put_char('\n');

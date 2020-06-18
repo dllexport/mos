@@ -1,7 +1,7 @@
 #include "tss.h"
 #include "lib/stdint.h"
 #include "lib/string.h"
-
+#include "memory.h"
 void set_tss(uint64_t rsp0, uint64_t rsp1, uint64_t rsp2, uint64_t ist1, uint64_t ist2, uint64_t ist3,
              uint64_t ist4, uint64_t ist5, uint64_t ist6, uint64_t ist7)
 {
@@ -20,8 +20,9 @@ void set_tss(uint64_t rsp0, uint64_t rsp1, uint64_t rsp2, uint64_t ist1, uint64_
 
 void tss_init()
 {
-    set_tss(0x7c00, 0x7c00, 0x7c00,
-            0x7c00, 0x7c00, 0x7c00,
-            0x7c00, 0x7c00, 0x7c00,
-            0x7c00);
+    auto addr = (uint64_t)Phy_To_Virt(0x0000000000007c00);
+    set_tss(addr, addr, addr,
+            addr, addr, addr,
+            addr, addr, addr,
+            addr);
 }

@@ -87,23 +87,26 @@ void memory_init()
             pages->attributes = 0;
             pages->reference_count = 0;
             pages->age = 0;
-            auto which_page = pages->physical_address / PAGE_4K_SIZE;
-            memory_desc.bitmap_set(which_page, 1);
+            // auto which_page = pages->physical_address / PAGE_4K_SIZE;
+            // memory_desc.bitmap_set(which_page, 1);
         }
     }
 
     auto end_page_addr = PAGE_4K_ALIGN(memory_desc.EndAddress());
     auto page_used_count = (end_page_addr - KETNEL_PAGE_OFFSET) / PAGE_4K_SIZE;
+    // printk("end_page_addr: ");
+    // auto page_offset = &memory_desc.pages[page_used_count] - memory_desc.pages;
 
+    // printk_hex(memory_desc.pages[page_used_count].physical_address);
+    // printk("\n");
     for (int i = 0; i < page_used_count; ++i)
     {
         page_init(&memory_desc.pages[i], PG_PTable_Maped | PG_Kernel_Init | PG_Active | PG_Kernel);
     }
 
     auto cr3 = Get_CR3();
-   *(uint64_t*)cr3 = 0UL;
-   flush_tlb();
-
+    *(uint64_t *)cr3 = 0UL;
+    flush_tlb();
 }
 
 void page_init(Page *page, uint64_t flags)
@@ -132,4 +135,23 @@ void page_init(Page *page, uint64_t flags)
         memory_desc.bitmap_set(page_offset, 1);
         page->attributes |= flags;
     }
+}
+
+Page *alloc_pages(uint32_t page_count, uint64_t page_flags)
+{
+    const int ZONE_UNMAPED_INDEX = 1;
+    auto &memory_desc = MemoryDescriptor::GetInstance();
+    Zone &z = memory_desc.zones[ZONE_UNMAPED_INDEX];
+    auto allocated_bit_start = memory_desc.bitmap_alloc(page_count);
+
+    if (allocated_bit_start == -1)
+        return nullptr;
+
+    auto start_page = &memory_desc.pages[allocated_bit_start];
+
+    for (int i = 0; i < page_count; ++i)
+    {
+        page_init(&start_page[i], page_flags);
+    }
+    return start_page;
 }
