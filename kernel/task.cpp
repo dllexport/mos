@@ -59,14 +59,14 @@ void user_level_function()
 
 extern "C" uint64_t do_execve(struct pt_regs *regs)
 {
-    regs->rdx = 0x400000; //RIP
-    regs->rcx = 0x500000; //RSP
+    regs->rdx = 0x500000; //RIP
+    regs->rcx = 0x400000; //RSP
     // regs->rax = 1;
-    regs->cs = USER_CS;
-    regs->ss = USER_DS;
-    regs->ds = USER_DS;
-    regs->es = USER_DS;
-    // printk_hex(uint64_t(&user_level_function));
+    regs->cs = KERNEL_CS;
+    regs->ss = KERNEL_DS;
+    regs->ds = KERNEL_DS;
+    regs->es = KERNEL_DS;
+    printk_hex(1);
     memcpy((void *)0x400000, (uint8_t *)&user_level_function, 1024);
     auto i = *(uint64_t *)0x0000000000400000;
     return 0;
@@ -172,7 +172,7 @@ static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t
 void task_init()
 {
 
-    wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48 | ((uint64_t)KERNEL_CS) << 32);
+    wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48);
     
     auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
 

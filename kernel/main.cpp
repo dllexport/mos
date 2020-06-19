@@ -20,7 +20,7 @@ int start_kernel()
    memory_init();
    gdt_init();
    idt_init();
-
+   
    printk("this is mos\n");
    task_init();
    // put_int(9);
