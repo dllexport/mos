@@ -187,9 +187,9 @@ LongMode:
     mov ss, ax
 
 ; -------------------------   加载kernel  ----------------------
-   mov eax, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
-   mov ebx, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
-   mov ecx, 200			       ; 读入的扇区数
+   mov rax, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
+   mov rbx, KERNEL_BIN_BASE_ADDR       ; 从磁盘读出后，写入到ebx指定的地址
+   mov rcx, 200			       ; 读入的扇区数
 
    call rd_disk_m_32
 

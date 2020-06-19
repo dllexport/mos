@@ -50,9 +50,41 @@ __asm__(
 
 static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags);
 
+extern "C" void ret_syscall();
+void user_level_function()
+{
+    while (1)
+        ;
+}
+
+extern "C" uint64_t do_execve(struct pt_regs *regs)
+{
+    regs->rdx = 0x400000; //RIP
+    regs->rcx = 0x500000; //RSP
+    // regs->rax = 1;
+    regs->cs = USER_CS;
+    regs->ss = USER_DS;
+    regs->ds = USER_DS;
+    regs->es = USER_DS;
+    // printk_hex(uint64_t(&user_level_function));
+    memcpy((void *)0x400000, (uint8_t *)&user_level_function, 1024);
+    auto i = *(uint64_t *)0x0000000000400000;
+    return 0;
+}
+
 uint64_t init2(uint64_t arg)
 {
     printk("this is init 2\n");
+    current->thread->rip = uint64_t(&ret_syscall);
+    current->thread->rsp = uint64_t((uint8_t *)current + STACK_SIZE - sizeof(pt_regs));
+    auto regs = (pt_regs *)current->thread->rsp;
+    asm __volatile__("movq	%1,	%%rsp	\n\t"
+                     "pushq	%2		\n\t"
+                     "jmp	do_execve	\n\t" ::"D"(regs),
+                     "m"(current->thread->rsp), "m"(current->thread->rip)
+                     : "memory");
+
+    return 0;
 }
 
 uint64_t init(uint64_t arg)
@@ -73,6 +105,7 @@ uint64_t init(uint64_t arg)
     while (1)
         ;
 }
+
 unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
 {
 
@@ -109,11 +142,8 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
 
     if (!(clone_flags & PF_KTHREAD))
     {
-        task->flags ^= PF_KTHREAD;
-        thread->rip = 0x0;
+        thread->rip = (uint64_t)Phy_To_Virt(&ret_syscall);
     }
-
-    // thd->rip = regs->rip = (unsigned long)ret_from_intr;
 
     task->state = TASK_RUNNING;
 
@@ -142,6 +172,8 @@ static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t
 void task_init()
 {
 
+    wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48 | ((uint64_t)KERNEL_CS) << 32);
+    
     auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
 
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + PAGE_4K_SIZE);

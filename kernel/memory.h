@@ -84,6 +84,7 @@ public:
     {
         return E820Descriptor::total_available_4k_page_length;
     }
+    
     static const void SetAvailable4kPageCount(uint64_t len)
     {
         E820Descriptor::total_available_4k_page_length += len;

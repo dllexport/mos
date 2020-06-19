@@ -33,15 +33,14 @@ void set_gdt_tss(int n, void* tss_addr, uint16_t limit, uint16_t attr)
 void gdt_init()
 {
     printk("tss_init\n");
-    set_gdt_tss(6, &TSS::Get(), 103, 0x89);
+    set_gdt_tss(7, &TSS::Get(), 103, 0x89);
     printk_hex(uint64_t(&gdt_ptr));
     printk("\n");
     printk_hex(uint64_t(Phy_To_Virt(&gdt_ptr)));
     printk("\n");
     load_gdt(&gdt_ptr);
 
-    
-    load_tr(0x30);
+    load_tr(0x38);
     tss_init();
     printk("gdt_init\n");
 

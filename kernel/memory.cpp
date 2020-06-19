@@ -104,9 +104,9 @@ void memory_init()
         page_init(&memory_desc.pages[i], PG_PTable_Maped | PG_Kernel_Init | PG_Active | PG_Kernel);
     }
 
-    auto cr3 = Get_CR3();
-    *(uint64_t *)cr3 = 0UL;
-    flush_tlb();
+    // auto cr3 = Get_CR3();
+    // *(uint64_t *)cr3 = 0UL;
+    // flush_tlb();
 }
 
 void page_init(Page *page, uint64_t flags)
