@@ -3,7 +3,7 @@
 #include "memory_flag.h"
 #include "tss.h"
 #include "ptrace.h"
-
+#include "lib/printk.h"
 static INIT_TASK_STATE init_task_state;
 static mm_struct init_task_mm;
 static TSS_STRUCT init_task_tss;
@@ -66,7 +66,7 @@ extern "C" uint64_t do_execve(struct pt_regs *regs)
     regs->ss = KERNEL_DS;
     regs->ds = KERNEL_DS;
     regs->es = KERNEL_DS;
-    printk_hex(1);
+
     memcpy((void *)0x400000, (uint8_t *)&user_level_function, 1024);
     auto i = *(uint64_t *)0x0000000000400000;
     return 0;
@@ -95,11 +95,8 @@ uint64_t init(uint64_t arg)
 
     auto next = list_next(&current->list);
     auto p = (task_struct *)next;
-    printk("current rsp :");
-    printk_hex(uint64_t(p->thread->rsp0));
-    printk(" next rip :");
-    printk_hex(uint64_t(p->thread->rip));
-    printk("\n");
+    printk("current rsp : %x\n", p->thread->rsp0);
+    printk("next rsp : %x\n", p->thread->rip);
 
     switch_to(current, p);
     while (1)
@@ -173,7 +170,7 @@ void task_init()
 {
 
     wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48);
-    
+
     auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
 
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + PAGE_4K_SIZE);
@@ -198,9 +195,9 @@ void task_init()
          .io_map_base_addr = 0};
 
     init_task = (task_struct *)Phy_To_Virt(page->physical_address);
-    printk("init task: ");
-    printk_hex(uint64_t(init_task));
-    printk("\n");
+
+    printk("init task: %x\n", init_task);
+
     memset(init_task, 0, STACK_SIZE);
 
     list_init(&init_task->list);

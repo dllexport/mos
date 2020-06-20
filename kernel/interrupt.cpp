@@ -2,6 +2,8 @@
 #include "lib/string.h"
 #include "gdt.h"
 #include "memory.h"
+#include "lib/printk.h"
+
 enum IDT_Descriptor_Type
 {
     INTERRUPT = 0x8E,
@@ -46,26 +48,23 @@ static inline void set_system_gate(unsigned int n, unsigned char ist, void *addr
 
 extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
-    printk("\n");
-    printk("divide error");
+    printk("rsp: %x", rsp);
+    printk("divide error\n");
     while (1)
         ;
 }
 
 extern "C" void handle_debug_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
-    printk("\n");
-    printk("debug error");
+    printk("rsp: %x", rsp);
+    printk("debug error\n");
     while (1)
         ;
 }
 
 extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
-    printk("\n");
+    printk("rsp: %x", rsp);
     printk("mni error");
     while (1)
         ;
@@ -73,7 +72,7 @@ extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
 
 extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
+    printk("rsp: %x", rsp);
     printk("\n");
     printk("nmi error");
     while (1)
@@ -81,7 +80,7 @@ extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
 }
 extern "C" void handle_int3_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
+    printk("rsp: %x", rsp);
     printk("\n");
     printk("int3 error");
     while (1)
@@ -90,7 +89,7 @@ extern "C" void handle_int3_error(uint64_t rsp, uint64_t error_code)
 
 extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
+    printk("rsp: %x", rsp);
     printk("\n");
     printk("tss error");
     while (1)
@@ -98,7 +97,7 @@ extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
 }
 extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_hex(rsp);
+    printk("rsp: %x", rsp);
     printk("\n");
     printk("page_fault error");
     while (1)

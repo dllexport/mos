@@ -1,12 +1,20 @@
+
+CXXFLAGS = -g -m64 -std=gnu++17 -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wno-write-strings -fno-stack-protector
+COMPILER = g++
 kernel: main.cpp lib/stdint.h lib/string.c lib/string.h
+	
 	nasm -f elf64 -o lib/no_gnu_property.o lib/no_gnu_property.asm
 	nasm -f elf64 -o interrupt_asm.o interrupt.asm
 	nasm -f elf64 -o task_asm.o task.asm
-	g++ -g -m64 -c -std=gnu++17 -o lib/string.o lib/string.c -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -fno-stack-protector
-	g++ -g -m64 -c -std=gnu++17 -o interrupt.o interrupt.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -Wno-return-local-addr
-	g++ -g -m64 -c -std=gnu++17 -o gdt.o gdt.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -Wno-return-local-addr
-	g++ -g -m64 -c -std=gnu++17 -o tss.o tss.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -Wno-return-local-addr
-	g++ -g -m64 -c -std=gnu++17 -o memory.o memory.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -Wno-return-local-addr
-	g++ -g -m64 -c -std=gnu++17 -o task.o task.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -fno-stack-protector -Wno-return-local-addr
-	g++ -g -m64 -c -std=gnu++17 -o main.o main.cpp -fno-builtin -fno-exceptions -fno-rtti -Wno-write-strings -Wno-return-local-addr
-	ld -m elf_x86_64 -Ttext 0x1500 -n -o kernel.bin main.o task.o task_asm.o memory.o gdt.o tss.o interrupt.o interrupt_asm.o lib/string.o lib/no_gnu_property.o
+
+	$(COMPILER) $(CXXFLAGS) -c -o lib/string.o lib/string.c 
+	$(COMPILER) $(CXXFLAGS) -c -o interrupt.o interrupt.cpp 
+	$(COMPILER) $(CXXFLAGS) -c -o gdt.o gdt.cpp 
+	$(COMPILER) $(CXXFLAGS) -c -o tss.o tss.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o memory.o memory.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o task.o task.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o lib/printk.o lib/printk.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o lib/debug.o lib/debug.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o main.o main.cpp
+
+	ld -m elf_x86_64 -e start_kernel -Ttext 0x1500 -n -o kernel.bin main.o lib/debug.o lib/printk.o task.o task_asm.o memory.o gdt.o tss.o interrupt.o interrupt_asm.o lib/string.o lib/no_gnu_property.o

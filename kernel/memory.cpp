@@ -1,5 +1,6 @@
 #include "memory.h"
 #include "lib/string.h"
+#include "lib/printk.h"
 #include "memory_flag.h"
 void page_init(Page *page, uint64_t flags);
 
@@ -16,9 +17,7 @@ void memory_init()
         {
             // 记录可用区域信息
             e820s[valid_e820_count].address = p->address;
-            printk("find zone: ");
-            printk_hex(p->address);
-            printk("\n");
+            printk("find zone: %x\n", p->address);
             e820s[valid_e820_count].length = p->length;
 
             e820s[valid_e820_count].type = p->type;

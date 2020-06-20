@@ -4,24 +4,24 @@
 #include "memory.h"
 #include "memory_flag.h"
 #include "task.h"
+#include "lib/printk.h"
+#include "lib/debug.h"
+extern "C" void start_kernel();
 
-int start_kernel();
-
-extern "C" void _start()
-{
-   start_kernel();
-}
 static inline void load_gdt(struct GDTP *p)
 {
    __asm__("lgdt %0" ::"m"(*p));
 }
-int start_kernel()
+void start_kernel()
 {
+   debug_init();
+   using namespace Kernel::VGA;
+   console_write_color("Hello, OS kernel!\n", Color::rc_black, Color::rc_white);
    memory_init();
+
    gdt_init();
    idt_init();
-   
-   printk("this is mos\n");
+
    task_init();
    // put_int(9);
    // put_char('\n');
@@ -32,5 +32,4 @@ int start_kernel()
    // put_int(0x00000000);
    while (1)
       ;
-   return 0;
 }

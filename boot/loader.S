@@ -196,9 +196,12 @@ LongMode:
 
    call kernel_init
    mov rsp, 0x9f000 + 0xffffff8000000000 
+   mov rbp, rsp
+   ; for clang KERNEL_ENTRY_POINT is cxx_global_var_init
+   ; so after cxx_global_var_init is call, we call start_kernel
    mov rax, KERNEL_ENTRY_POINT
    jmp rax                 
-
+   
 kernel_init:
    xor rax, rax
    xor rbx, rbx		;ebx记录程序头表地址

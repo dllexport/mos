@@ -2,6 +2,7 @@
 #include "lib/string.h"
 #include "tss.h"
 #include "memory.h"
+#include "lib/printk.h"
 
 static inline void load_gdt(struct GDTP *p)
 {
@@ -34,10 +35,7 @@ void gdt_init()
 {
     printk("tss_init\n");
     set_gdt_tss(7, &TSS::Get(), 103, 0x89);
-    printk_hex(uint64_t(&gdt_ptr));
-    printk("\n");
-    printk_hex(uint64_t(Phy_To_Virt(&gdt_ptr)));
-    printk("\n");
+    printk("GDT_PTR %x\n", &gdt_ptr);
     load_gdt(&gdt_ptr);
 
     load_tr(0x38);

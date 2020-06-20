@@ -23,7 +23,7 @@ void set_tss(TSS_STRUCT &new_tss)
     auto &tss = TSS::Get();
     tss = new_tss;
 }
-
+#include "lib/debug.h"
 void tss_init()
 {
     auto addr = (uint64_t)Phy_To_Virt(0x0000000000007c00);
