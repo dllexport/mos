@@ -11,12 +11,36 @@ enum IDT_Descriptor_Type
     SYSTEM = 0xEF
 };
 
-extern "C" void ignore_int();
-
 static inline void load_idt(struct IDTR *idt_r)
 {
     __asm__("lidt %0" ::"m"(*idt_r));
 }
+
+extern "C"
+{
+    void isr0();
+    void isr1();
+    void isr2();
+    void isr3();
+    void isr4();
+    void isr5();
+    void isr6();
+    void isr7();
+    void isr8();
+    void isr9();
+    void isr10();
+    void isr11();
+    void isr12();
+    void isr13();
+    void isr14();
+    void isr15();
+    void isr16();
+    void isr17();
+    void isr18();
+    void isr19();
+}
+
+#define CONVERT_ISR_ADDR(i) Phy_To_Virt((void *)(&isr##i))
 
 static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned char ist, void *addr)
 {
@@ -31,20 +55,9 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
     id.zero = 0;
 }
 
-static inline void set_intr_gate(unsigned int n, unsigned char ist, void *addr)
-{
-    _set_gate(INTERRUPT, n, ist, addr);
-}
-
-static inline void set_trap_gate(unsigned int n, unsigned char ist, void *addr)
-{
-    _set_gate(TRAP, n, ist, addr);
-}
-
-static inline void set_system_gate(unsigned int n, unsigned char ist, void *addr)
-{
-    _set_gate(SYSTEM, n, ist, addr);
-}
+#define set_trap_gate(n, ist) _set_gate(TRAP, n, ist, CONVERT_ISR_ADDR(n));
+#define set_intr_gate(n, ist) _set_gate(INTERRUPT, n, ist, CONVERT_ISR_ADDR(n));
+#define set_system_gate(n, ist) _set_gate(SYSTEM, n, ist, CONVERT_ISR_ADDR(n));
 
 extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
 {
@@ -103,19 +116,35 @@ extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
     while (1)
         ;
 }
-extern "C" void divide_error();
-extern "C" void debug_error();
-extern "C" void nmi_error();
-extern "C" void int3_error();
-extern "C" void page_fault_error();
 
 void idt_init()
 {
-    set_trap_gate(0, 1, Phy_To_Virt((void *)(&divide_error)));
-    set_trap_gate(1, 1, Phy_To_Virt((void *)(&debug_error)));
-    set_intr_gate(2, 1, Phy_To_Virt((void *)(&nmi_error)));
-    set_system_gate(3, 1, Phy_To_Virt((void *)(&int3_error)));
-    set_trap_gate(14, 1, Phy_To_Virt((void *)(&page_fault_error)));
+    set_intr_gate(0, 1);
+    set_intr_gate(1, 1);
+    set_intr_gate(2, 1);
+    set_intr_gate(3, 1);
+    set_intr_gate(4, 1);
+    set_intr_gate(5, 1);
+    set_intr_gate(6, 1);
+    set_intr_gate(7, 1);
+    set_intr_gate(8, 1);
+    set_intr_gate(9, 1);
+    set_intr_gate(10, 1);
+    set_intr_gate(11, 1);
+    set_intr_gate(12, 1);
+    set_intr_gate(13, 1);
+    set_intr_gate(14, 1);
+    set_intr_gate(15, 1);
+    set_intr_gate(16, 1);
+    set_intr_gate(17, 1);
+    set_intr_gate(18, 1);
+    set_intr_gate(19, 1);
+
     load_idt(&idtr);
     printk("idt_init\n");
+}
+
+extern "C" void isr_handler(uint64_t isr_number, uint64_t error_code)
+{
+    printk("isr: %d error_code: %d\n", isr_number, error_code);
 }

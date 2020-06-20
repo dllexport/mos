@@ -22,6 +22,6 @@ struct NO_ALIGNMENT IDTR {
     void* idt_address;
 };
 
-static IDTR idtr = {uint16_t(idt_count * 16 - 1), Phy_To_Virt(idt)};
+static IDTR idtr = {uint16_t(idt_count * sizeof(IDT_Descriptor) - 1), Phy_To_Virt(idt)};
 
 extern "C" void idt_init();

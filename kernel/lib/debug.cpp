@@ -11,24 +11,24 @@ static int get_elf_section_of_symbol_table(uint64_t elf_addr)
 {
     auto elf_header = (Elf64_Ehdr *)elf_addr;
     auto sheader = (Elf64_Shdr *)((uint8_t *)elf_addr + elf_header->e_shoff);
-    printk("e_shoff %d\n", elf_header->e_shoff);
+    // printk("e_shoff %d\n", elf_header->e_shoff);
     auto seg_count = elf_header->e_shnum;
-    printk("e_shnum %d\n", elf_header->e_shnum);
-    printk("e_shentsize %d\n", elf_header->e_shentsize);
+    // printk("e_shnum %d\n", elf_header->e_shnum);
+    // printk("e_shentsize %d\n", elf_header->e_shentsize);
 
     auto find_count = 0;
     for (int i = 0; i < seg_count && find_count < 2; ++i)
     {
         if (sheader[i].sh_type == SHT_SYMTAB)
         {
-            printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            // printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.symtab = (Elf64_Sym *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.symtabsz = sheader[i].sh_size;
             find_count++;
         }
         if (sheader[i].sh_type == SHT_STRTAB)
         {
-            printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            // printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.strtab = (const char *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.strtabsz = sheader[i].sh_size;
             find_count++;
@@ -40,10 +40,11 @@ static int get_elf_section_of_symbol_table(uint64_t elf_addr)
 
 void debug_init()
 {
+    printk("debug_init\n");
     get_elf_section_of_symbol_table(0xffffff8000000000 + 0x70000);
 }
 
-const char *elf_lookup_symbol(uint64_t addr)
+static const char *elf_lookup_symbol(uint64_t addr)
 {
     for (int i = 0; i < (elf_symbol.symtabsz); i++)
     {
@@ -63,20 +64,35 @@ const char *elf_lookup_symbol(uint64_t addr)
         }
     }
 
-    return nullptr;
+    return "unknown symbol";
 }
 
 static void print_stack_trace()
 {
     uint64_t *rbp, *rip;
 
+    // load current rbp
     asm volatile("mov %%rbp, %0"
                  : "=r"(rbp));
 
+    // we keep poping stack until reaching start_kernel_base
     while (*rbp != start_kernel_base)
     {
+        // rip is above the rbp because
+        // call instruction will push rip and 
+        // the function will exec 
+        // push rbp;
+        // mov rsp, rbp; 
         rip = rbp + 1;
+        // rip points to the stack which it's value *rip is the return address
+        // the symbol in elf is mapped at the start of 0x1500
+        // but we've shifted the address to kernel space
+        // and we now executing with virtual address like 0xffff800000001500
+        // so translation from *rip to it's original is needed
         printk("   [0x%x] %s\n", *rip, elf_lookup_symbol((uint64_t)Virt_To_Phy(*rip)));
+        // rbp points to the current position of rbp on stack
+        // it's value *rbp points to the previous one on stack
+        // we make rbp points to the previous one on stack
         rbp = (uint64_t *)*rbp;
     }
 }

@@ -4,6 +4,7 @@
 #include "tss.h"
 #include "ptrace.h"
 #include "lib/printk.h"
+#include "lib/debug.h"
 static INIT_TASK_STATE init_task_state;
 static mm_struct init_task_mm;
 static TSS_STRUCT init_task_tss;

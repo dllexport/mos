@@ -30,16 +30,13 @@ void set_gdt_tss(int n, void* tss_addr, uint16_t limit, uint16_t attr)
     ts->high[3] = (uint8_t)(addr >> 48);
     ts->high[4] = (uint8_t)(addr >> 56);
 }
-
 void gdt_init()
 {
     printk("tss_init\n");
     set_gdt_tss(7, &TSS::Get(), 103, 0x89);
-    printk("GDT_PTR %x\n", &gdt_ptr);
     load_gdt(&gdt_ptr);
 
     load_tr(0x38);
     tss_init();
-    printk("gdt_init\n");
-
+    printk("gdt_init GDT_PTR %x\n", &gdt_ptr);
 }

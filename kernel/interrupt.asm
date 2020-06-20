@@ -1,4 +1,3 @@
-%idefine rip rel $
 
     _R15	equ	0x00
     _R14	equ	0x08
@@ -18,17 +17,18 @@
     _ES	equ	0x78
     _HANDLER	equ	0x80
     _RAX	equ	0x88
-    _ERROR_CODE	equ	0x90
-    _RIP	equ	0x98
-    _CS	equ	0xa0
-    _RFLAGS	equ	0xa8
-    _OLDRSP	equ	0xb0
-    _OLDSS	equ	0xb8
+    _ISR_CODE	equ	0x90
+    _ERROR_CODE	equ	0x98
+    _RIP	equ	0xa0
+    _CS	equ	0xa8
+    _RFLAGS	equ	0xb0
+    _OLDRSP	equ	0xb8
+    _OLDSS	equ	0xc0
 
 [BITS 64]      
 SECTION .text
     
-restore_all:
+int_ret:
 
     pop r15
     pop r14
@@ -54,16 +54,12 @@ restore_all:
     pop rax ; handler
     pop rax ; original
 
-    ;skip _ERROR_CODE
-    add rsp, 0x8
+    ;skip _ISR_CODE and _ERROR_CODE
+    add rsp, 0x10
 
-    iret
-    
-int_ret:
-	jmp	restore_all	
+    o64 iret
 
 int_with_ec:
-    cld
     ; save es
     mov rax, es
     push rax
@@ -91,63 +87,58 @@ int_with_ec:
     push r14
     push r15
 
+    ;mov rsi, [rsp + _ERROR_CODE]
+    ;mov rdi, rsp
+    mov rdi, [rsp + _ISR_CODE]
     mov rsi, [rsp + _ERROR_CODE]
-    mov rdi, rsp
     mov rdx, [rsp + _HANDLER]
     call rdx
     jmp int_ret
-loop:
-    jmp loop
-extern handle_devide_error
-global divide_error
-divide_error:
-	push	0x0 ; ec
+
+; common isr_handler
+; sig: void isr_handler(uint64_t isr_number);
+extern isr_handler
+
+%macro ISR_WITHOUT_ERROR_CODE 1
+[GLOBAL isr%1]
+isr%1:
+    cli                  ; 关闭中断
+    push 0               ; push error_code (invalid)
+    push %1              ; push isr
     push    rax ; original rax
-	lea     rax, [rel handle_devide_error]
+	lea     rax, [rel isr_handler]
     push    rax ; handler
     jmp int_with_ec
+%endmacro
 
-extern handle_debug_error
-global debug_error
-debug_error:
-	push	0x0 ; ec
+%macro ISR_WITH_ERROR_CODE 1
+[GLOBAL isr%1]
+isr%1:
+    cli                  ; 关闭中断
+    push    %1
     push    rax ; original rax
-	lea     rax, [rel handle_debug_error]
+	lea     rax, [rel isr_handler]
     push    rax ; handler
     jmp int_with_ec
+%endmacro
 
-extern handle_nmi_error
-global nmi_error
-nmi_error:
-	push	0x0 ; ec
-    push    rax ; original rax
-	lea     rax, [rel handle_nmi_error]
-    push    rax ; handler
-    jmp int_with_ec
-
-extern handle_int3_error
-global int3_error
-int3_error:
-	push	0x0 ; ec
-    push    rax ; original rax
-	lea     rax, [rel handle_int3_error]
-    push    rax ; handler
-    jmp int_with_ec
-
-extern handle_tss_error
-global tss_error
-tss_error:
-    push    rax ; original rax
-	lea     rax, [rel handle_tss_error]
-    push    rax ; handler
-    jmp int_with_ec
-
-extern handle_page_fault_error
-global page_fault_error
-page_fault_error:
-    push    rax ; original rax
-	lea     rax, [rel handle_page_fault_error]
-    push    rax ; handler
-    jmp int_with_ec
-
-
+ISR_WITHOUT_ERROR_CODE  0    ; 0 #DE 除 0 异常
+ISR_WITHOUT_ERROR_CODE  1    ; 1 #DB 调试异常
+ISR_WITHOUT_ERROR_CODE  2    ; 2 NMI
+ISR_WITHOUT_ERROR_CODE  3    ; 3 BP 断点异常 
+ISR_WITHOUT_ERROR_CODE  4    ; 4 #OF 溢出 
+ISR_WITHOUT_ERROR_CODE  5    ; 5 #BR 对数组的引用超出边界 
+ISR_WITHOUT_ERROR_CODE  6    ; 6 #UD 无效或未定义的操作码 
+ISR_WITHOUT_ERROR_CODE  7    ; 7 #NM 设备不可用(无数学协处理器) 
+ISR_WITH_ERROR_CODE    8    ; 8 #DF 双重故障(有错误代码) 
+ISR_WITHOUT_ERROR_CODE  9    ; 9 协处理器跨段操作
+ISR_WITH_ERROR_CODE   10    ; 10 #TS 无效TSS(有错误代码) 
+ISR_WITH_ERROR_CODE   11    ; 11 #NP 段不存在(有错误代码) 
+ISR_WITH_ERROR_CODE   12    ; 12 #SS 栈错误(有错误代码) 
+ISR_WITH_ERROR_CODE   13    ; 13 #GP 常规保护(有错误代码) 
+ISR_WITH_ERROR_CODE   14    ; 14 #PF 页故障(有错误代码) 
+ISR_WITHOUT_ERROR_CODE 15    ; 15 CPU 保留 
+ISR_WITHOUT_ERROR_CODE 16    ; 16 #MF 浮点处理单元错误 
+ISR_WITH_ERROR_CODE   17    ; 17 #AC 对齐检查 
+ISR_WITHOUT_ERROR_CODE 18    ; 18 #MC 机器检查 
+ISR_WITHOUT_ERROR_CODE 19    ; 19 #XM SIMD(单指令多数据)浮点异常
