@@ -3,6 +3,13 @@
 #include "gdt.h"
 #include "memory.h"
 #include "lib/printk.h"
+#include "lib/port_ops.h"
+
+#define IO_PIC1 (0x20) // Master (IRQs 0-7)
+#define IO_PIC2 (0xA0) // Slave  (IRQs 8-15)
+
+#define IO_PIC1C (IO_PIC1 + 1)
+#define IO_PIC2C (IO_PIC2 + 1)
 
 enum IDT_Descriptor_Type
 {
@@ -10,6 +17,13 @@ enum IDT_Descriptor_Type
     TRAP = 0x8F,
     SYSTEM = 0xEF
 };
+
+static interrupt_handler_t interrupt_handlers[INTERRUPT_MAX] __attribute__((aligned(8)));
+
+void register_interrupt_handler(uint8_t n, interrupt_handler_t h)
+{
+    interrupt_handlers[n] = h;
+}
 
 static inline void load_idt(struct IDTR *idt_r)
 {
@@ -38,9 +52,39 @@ extern "C"
     void isr17();
     void isr18();
     void isr19();
+    void isr20();
+    void isr21();
+    void isr22();
+    void isr23();
+    void isr24();
+    void isr25();
+    void isr26();
+    void isr27();
+    void isr28();
+    void isr29();
+    void isr30();
+    void isr31();
+
+    void irq0();  // 电脑系统计时器
+    void irq1();  // 键盘
+    void irq2();  // 与 IRQ9 相接，MPU-401 MD 使用
+    void irq3();  // 串口设备
+    void irq4();  // 串口设备
+    void irq5();  // 建议声卡使用
+    void irq6();  // 软驱传输控制使用
+    void irq7();  // 打印机传输控制使用
+    void irq8();  // 即时时钟
+    void irq9();  // 与 IRQ2 相接，可设定给其他硬件
+    void irq10(); // 建议网卡使用
+    void irq11(); // 建议 AGP 显卡使用
+    void irq12(); // 接 PS/2 鼠标，也可设定给其他硬件
+    void irq13(); // 协处理器使用
+    void irq14(); // IDE0 传输控制使用
+    void irq15(); // IDE1 传输控制使用
 }
 
 #define CONVERT_ISR_ADDR(i) Phy_To_Virt((void *)(&isr##i))
+#define CONVERT_IRQ_ADDR(i) Phy_To_Virt((void *)(&irq##i))
 
 static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned char ist, void *addr)
 {
@@ -55,9 +99,9 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
     id.zero = 0;
 }
 
-#define set_trap_gate(n, ist) _set_gate(TRAP, n, ist, CONVERT_ISR_ADDR(n));
-#define set_intr_gate(n, ist) _set_gate(INTERRUPT, n, ist, CONVERT_ISR_ADDR(n));
-#define set_system_gate(n, ist) _set_gate(SYSTEM, n, ist, CONVERT_ISR_ADDR(n));
+#define set_trap_gate(n, ist, addr) _set_gate(TRAP, n, ist, addr);
+#define set_intr_gate(n, ist, addr) _set_gate(INTERRUPT, n, ist, addr);
+#define set_system_gate(n, ist, addr) _set_gate(SYSTEM, n, ist, addr);
 
 extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
 {
@@ -119,26 +163,81 @@ extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
 
 void idt_init()
 {
-    set_intr_gate(0, 1);
-    set_intr_gate(1, 1);
-    set_intr_gate(2, 1);
-    set_intr_gate(3, 1);
-    set_intr_gate(4, 1);
-    set_intr_gate(5, 1);
-    set_intr_gate(6, 1);
-    set_intr_gate(7, 1);
-    set_intr_gate(8, 1);
-    set_intr_gate(9, 1);
-    set_intr_gate(10, 1);
-    set_intr_gate(11, 1);
-    set_intr_gate(12, 1);
-    set_intr_gate(13, 1);
-    set_intr_gate(14, 1);
-    set_intr_gate(15, 1);
-    set_intr_gate(16, 1);
-    set_intr_gate(17, 1);
-    set_intr_gate(18, 1);
-    set_intr_gate(19, 1);
+    bzero(interrupt_handlers, INTERRUPT_MAX * sizeof(interrupt_handler_t));
+    // 初始化主片、从片
+    // 0001 0001
+    outb(0x20, 0x11);
+    outb(0xA0, 0x11);
+
+    // 设置主片 IRQ 从 0x20(32) 号中断开始
+    outb(0x21, 0x20);
+
+    // 设置从片 IRQ 从 0x28(40) 号中断开始
+    outb(0xA1, 0x28);
+
+    // 设置主片 IR2 引脚连接从片
+    outb(0x21, 0x04);
+
+    // 告诉从片输出引脚和主片 IR2 号相连
+    outb(0xA1, 0x02);
+
+    // 设置主片和从片按照 8086 的方式工作
+    outb(0x21, 0x01);
+    outb(0xA1, 0x01);
+
+    // 设置主从片允许中断
+    outb(0x21, 0x0);
+    outb(0xA1, 0x0);
+
+    set_intr_gate(0, 1, CONVERT_ISR_ADDR(0));
+    set_intr_gate(1, 1, CONVERT_ISR_ADDR(1));
+    set_intr_gate(2, 1, CONVERT_ISR_ADDR(2));
+    set_intr_gate(3, 1, CONVERT_ISR_ADDR(3));
+    set_intr_gate(4, 1, CONVERT_ISR_ADDR(4));
+    set_intr_gate(5, 1, CONVERT_ISR_ADDR(5));
+    set_intr_gate(6, 1, CONVERT_ISR_ADDR(6));
+    set_intr_gate(7, 1, CONVERT_ISR_ADDR(7));
+    set_intr_gate(8, 1, CONVERT_ISR_ADDR(8));
+    set_intr_gate(9, 1, CONVERT_ISR_ADDR(9));
+    set_intr_gate(10, 1, CONVERT_ISR_ADDR(10));
+    set_intr_gate(11, 1, CONVERT_ISR_ADDR(11));
+    set_intr_gate(12, 1, CONVERT_ISR_ADDR(12));
+    set_intr_gate(13, 1, CONVERT_ISR_ADDR(13));
+    set_intr_gate(14, 1, CONVERT_ISR_ADDR(14));
+    set_intr_gate(15, 1, CONVERT_ISR_ADDR(15));
+    set_intr_gate(16, 1, CONVERT_ISR_ADDR(16));
+    set_intr_gate(17, 1, CONVERT_ISR_ADDR(17));
+    set_intr_gate(18, 1, CONVERT_ISR_ADDR(18));
+    set_intr_gate(19, 1, CONVERT_ISR_ADDR(19));
+    set_intr_gate(20, 1, CONVERT_ISR_ADDR(20));
+    set_intr_gate(21, 1, CONVERT_ISR_ADDR(21));
+    set_intr_gate(22, 1, CONVERT_ISR_ADDR(22));
+    set_intr_gate(23, 1, CONVERT_ISR_ADDR(23));
+    set_intr_gate(24, 1, CONVERT_ISR_ADDR(24));
+    set_intr_gate(25, 1, CONVERT_ISR_ADDR(25));
+    set_intr_gate(26, 1, CONVERT_ISR_ADDR(26));
+    set_intr_gate(27, 1, CONVERT_ISR_ADDR(27));
+    set_intr_gate(28, 1, CONVERT_ISR_ADDR(28));
+    set_intr_gate(29, 1, CONVERT_ISR_ADDR(29));
+    set_intr_gate(30, 1, CONVERT_ISR_ADDR(30));
+    set_intr_gate(31, 1, CONVERT_ISR_ADDR(31));
+
+    set_intr_gate(32, 1, CONVERT_IRQ_ADDR(0));
+    set_intr_gate(33, 1, CONVERT_IRQ_ADDR(1));
+    set_intr_gate(34, 1, CONVERT_IRQ_ADDR(2));
+    set_intr_gate(35, 1, CONVERT_IRQ_ADDR(3));
+    set_intr_gate(36, 1, CONVERT_IRQ_ADDR(4));
+    set_intr_gate(37, 1, CONVERT_IRQ_ADDR(5));
+    set_intr_gate(38, 1, CONVERT_IRQ_ADDR(6));
+    set_intr_gate(39, 1, CONVERT_IRQ_ADDR(7));
+    set_intr_gate(40, 1, CONVERT_IRQ_ADDR(8));
+    set_intr_gate(41, 1, CONVERT_IRQ_ADDR(9));
+    set_intr_gate(42, 1, CONVERT_IRQ_ADDR(10));
+    set_intr_gate(43, 1, CONVERT_IRQ_ADDR(11));
+    set_intr_gate(44, 1, CONVERT_IRQ_ADDR(12));
+    set_intr_gate(45, 1, CONVERT_IRQ_ADDR(13));
+    set_intr_gate(46, 1, CONVERT_IRQ_ADDR(14));
+    set_intr_gate(47, 1, CONVERT_IRQ_ADDR(15));
 
     load_idt(&idtr);
     printk("idt_init\n");
@@ -146,5 +245,45 @@ void idt_init()
 
 extern "C" void isr_handler(uint64_t isr_number, uint64_t error_code)
 {
+    if (interrupt_handlers[isr_number])
+    {
+        printk("interrupt_handlers %p\n", interrupt_handlers[isr_number]);
+    }
+    else
+    {
+        // cpu_hlt();
+    }
     printk("isr: %d error_code: %d\n", isr_number, error_code);
+}
+
+static void clear_interrupt_chip(uint32_t intr_no)
+{
+    // 发送中断结束信号给 PICs
+    // 按照我们的设置，从 32 号中断起为用户自定义中断
+    // 因为单片的 Intel 8259A 芯片只能处理 8 级中断
+    // 故大于等于 40 的中断号是由从片处理的
+    if (intr_no >= 40)
+    {
+        // printk("reset io_pic2");
+        // 发送重设信号给从片
+        outb(IO_PIC2, 0x20);
+    }
+    // printk("reset io_pic1");
+    // 发送重设信号给主片
+    outb(IO_PIC1, 0x20);
+}
+
+extern "C" void irq_handler(uint64_t irq_number, uint64_t error_code)
+{
+    if (interrupt_handlers[irq_number])
+    {
+        interrupt_handlers[irq_number]();
+        // printk("interrupt_handlers %p\n", interrupt_handlers[irq_number]);
+        clear_interrupt_chip(irq_number);
+    }
+    else
+    {
+        // cpu_hlt();
+    }
+    // printk("irq: %d error_code: %d\n", irq_number, error_code);
 }

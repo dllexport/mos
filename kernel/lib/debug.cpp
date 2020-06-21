@@ -3,7 +3,7 @@
 #include "printk.h"
 #include "../memory.h"
 
-constexpr uint64_t start_kernel_base = 0x9f000 + KETNEL_PAGE_OFFSET;
+constexpr uint64_t start_kernel_base = 0x100000 + KETNEL_PAGE_OFFSET;
 
 static elf_symbol_t elf_symbol;
 

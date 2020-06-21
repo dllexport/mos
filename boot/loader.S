@@ -172,7 +172,7 @@ loader_start:
    mov cr0, ebx                    
  
    lgdt [GDT.Pointer]                ; Load GDT.Pointer defined below.
-   
+
    jmp CODE_SEG:LongMode             ; Load CS with 64 bit segment and flush the instruction cache
 
 .error_hlt:		      ;出错则挂起
@@ -195,7 +195,7 @@ LongMode:
    call rd_disk_m_32
 
    call kernel_init
-   mov rsp, 0x9f000 + 0xffffff8000000000 
+   mov rsp, KERNEL_BIN_BASE_ADDR
    mov rbp, rsp
    ; for clang KERNEL_ENTRY_POINT is cxx_global_var_init
    ; so after cxx_global_var_init is call, we call start_kernel

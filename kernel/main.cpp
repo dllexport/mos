@@ -5,7 +5,7 @@
 #include "task.h"
 #include "lib/printk.h"
 #include "lib/debug.h"
-
+#include "timer.h"
 extern "C" void start_kernel()
 {
    printk("mos kernel startup...\n");
@@ -15,13 +15,16 @@ extern "C" void start_kernel()
    gdt_init();
    idt_init();
 
-   asm volatile ("int $0x3");
-   asm volatile ("int $0x3");
-   asm volatile ("int $0x3");
-   asm volatile ("int $0x4");
+   asm volatile("int $0x3");
 
    printk("int return\n");
-   task_init();
+
+   timer_init(200);
+   
+   asm volatile("sti");
+
+   printk("start itr\n");
+   // task_init();
 
    // put_int(9);
    // put_char('\n');

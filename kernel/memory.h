@@ -57,40 +57,6 @@ struct NO_ALIGNMENT E820
     uint32_t type;
 };
 
-class E820Descriptor
-{
-private:
-    inline static E820 e820[32];
-    inline static uint32_t e820_length;
-    inline static uint64_t total_available_4k_page_length;
-
-public:
-    static auto &Get()
-    {
-        return e820;
-    }
-
-    static const uint32_t &GetE820Length()
-    {
-        return e820_length;
-    }
-
-    static void SetE820Length(uint32_t len)
-    {
-        E820Descriptor::e820_length = len;
-    }
-
-    static const uint32_t &GetAvailable4kPageCount()
-    {
-        return E820Descriptor::total_available_4k_page_length;
-    }
-    
-    static const void SetAvailable4kPageCount(uint64_t len)
-    {
-        E820Descriptor::total_available_4k_page_length += len;
-    }
-};
-
 struct Page;
 
 struct Zone

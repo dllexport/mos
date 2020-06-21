@@ -4,19 +4,24 @@
 #include "memory_flag.h"
 void page_init(Page *page, uint64_t flags);
 
+static E820 e820s[16];
+static uint32_t e820_length;
+static uint64_t total_available_4k_page_length;
+
 void memory_init()
 {
-    using e820_desc = E820Descriptor;
+
     auto p = (struct E820 *)0xffffff800000090b;
     uint64_t total_physical_memory = 0;
-    auto e820s = e820_desc::Get();
     auto valid_e820_count = 0;
-    for (int i = 0; i < 32; i++)
+    for (int i = 0; i < 16; i++)
     {
         if (p->type == 1)
         {
             // 记录可用区域信息
             e820s[valid_e820_count].address = p->address;
+            printk("memory_init: %p\n", e820s);
+
             printk("find zone: %x\n", p->address);
             e820s[valid_e820_count].length = p->length;
 
@@ -29,10 +34,10 @@ void memory_init()
         }
         p++;
     }
-    e820_desc::SetE820Length(valid_e820_count);
+    e820_length = valid_e820_count;
 
     uint64_t pages_count = 0;
-    for (int i = 0; i < e820_desc::GetE820Length(); ++i)
+    for (int i = 0; i < e820_length; ++i)
     {
         uint64_t start = PAGE_4K_ALIGN(e820s[i].address);
         uint64_t end = ((e820s[i].address + e820s[i].length) >> PAGE_4K_SHIFT) << PAGE_4K_SHIFT;
@@ -40,7 +45,7 @@ void memory_init()
             continue;
         pages_count += (end - start) >> PAGE_4K_SHIFT;
     }
-    e820_desc::SetAvailable4kPageCount(pages_count);
+    total_available_4k_page_length = pages_count;
 
     auto &memory_desc = MemoryDescriptor::GetInstance();
 
@@ -59,7 +64,7 @@ void memory_init()
     memory_desc.zones_size = valid_e820_count * sizeof(Zone);
     memset(memory_desc.zones, 0x0, sizeof(Zone) * valid_e820_count);
 
-    for (int i = 0; i < e820_desc::GetE820Length(); ++i)
+    for (int i = 0; i < e820_length; ++i)
     {
 
         uint64_t start = PAGE_4K_ALIGN(e820s[i].address);
