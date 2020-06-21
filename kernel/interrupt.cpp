@@ -92,7 +92,7 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
     auto &id = idt[n];
     id.offset_low = (uint16_t)handler;
     id.selector = CODE_SEG;
-    id.istack = 1;
+    id.istack = 0;
     id.type_attribute = type;
     id.offset_mid = (uint16_t)(handler >> 16);
     id.offset_high = (uint32_t)(handler >> 32);

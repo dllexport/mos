@@ -32,9 +32,8 @@ tss_struct& get_tss() {
 
 void tss_init()
 {
-    auto addr = (uint64_t)Phy_To_Virt(0x0000000000007c00);
-    set_tss(addr, addr, addr,
-            addr, addr, addr,
-            addr, addr, addr,
-            addr);
+    set_tss(0, 0, 0,
+            0, 0, 0,
+            0, 0, 0,
+            0);
 }

@@ -77,19 +77,12 @@ extern "C" uint64_t do_execve(struct pt_regs *regs)
     return 0;
 }
 
-
 void schedule()
 {
-    auto cur = get_current_task();
-    auto next = list_prev(&cur->list);
+    auto next = list_prev(&current->list);
     auto p = (task_struct *)next;
-    printk("from %d to %d\n", cur->pid, p->pid);
-    if (current_task != p) {
-        struct task_struct *prev = current;
-        current_task = p;
-        switch_to(current_task, p);
-    }
-    
+    // printk("from %d to %d\n", current->pid, p->pid);
+    switch_to(current, p);
 }
 
 uint64_t init2(uint64_t arg)
@@ -99,7 +92,7 @@ uint64_t init2(uint64_t arg)
     printk("this is init 2\n");
     while (1)
     {
-        printk("this is init 2\n");
+        printk("2");
     }
     current->thread->rip = uint64_t(&ret_syscall);
     current->thread->rsp = uint64_t((uint8_t *)current + STACK_SIZE - sizeof(pt_regs));
@@ -128,7 +121,7 @@ uint64_t init(uint64_t arg)
     asm volatile("sti");
     while (1)
     {
-        // printk("this is init 0\n");
+        printk("1");
     }
 }
 
@@ -282,9 +275,8 @@ extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
 
     __asm__ __volatile__("movq	%0,	%%fs \n\t" ::"a"(next->thread->fs));
     __asm__ __volatile__("movq	%0,	%%gs \n\t" ::"a"(next->thread->gs));
-    
+
     current_task = next;
 
     __asm__ __volatile__("sti");
-
 }
