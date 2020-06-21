@@ -11,14 +11,14 @@ struct NO_ALIGNMENT GDT_TSS
     uint32_t reserved;
 };
 
-struct NO_ALIGNMENT TSS_STRUCT
+struct NO_ALIGNMENT tss_struct
 {
     uint32_t reserved1;
-    uint64_t rsp0 = 0xffff800000007c00;
-    uint64_t rsp1 = 0xffff800000007c00;
-    uint64_t rsp2 = 0xffff800000007c00;
+    uint64_t rsp0;
+    uint64_t rsp1;
+    uint64_t rsp2;
     uint64_t reserved2;
-    uint64_t ist1 = 0xffff800000007c00;
+    uint64_t ist1;
     uint64_t ist2;
     uint64_t ist3;
     uint64_t ist4;
@@ -30,19 +30,10 @@ struct NO_ALIGNMENT TSS_STRUCT
     uint16_t io_map_base_addr;
 };
 
-class TSS
-{
-private:
-    inline static TSS_STRUCT tss_table;
-
-public:
-    static TSS_STRUCT &Get()
-    {
-        return tss_table;
-    }
-};
-
 extern "C" void tss_init();
+
 void set_tss(uint64_t rsp0, uint64_t rsp1, uint64_t rsp2, uint64_t ist1, uint64_t ist2, uint64_t ist3,
                         uint64_t ist4, uint64_t ist5, uint64_t ist6, uint64_t ist7);
-void set_tss(TSS_STRUCT &new_tss);
+void set_tss(tss_struct &new_tss);
+
+tss_struct& get_tss();

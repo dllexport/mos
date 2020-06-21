@@ -33,6 +33,8 @@ IRQ  12,    44  ; 接 PS/2 鼠标，也可设定给其他硬件
 IRQ  13,    45  ; 协处理器使用
 IRQ  14,    46  ; IDE0 传输控制使用
 IRQ  15,    47  ; IDE1 传输控制使用
+
+extern schedule
 int_ret:
 
     pop r15

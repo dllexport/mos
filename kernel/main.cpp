@@ -15,16 +15,9 @@ extern "C" void start_kernel()
    gdt_init();
    idt_init();
 
-   asm volatile("int $0x3");
+   timer_init(100);
 
-   printk("int return\n");
-
-   timer_init(200);
-   
-   asm volatile("sti");
-
-   printk("start itr\n");
-   // task_init();
+   task_init();
 
    // put_int(9);
    // put_char('\n');

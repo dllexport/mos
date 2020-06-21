@@ -277,9 +277,10 @@ extern "C" void irq_handler(uint64_t irq_number, uint64_t error_code)
 {
     if (interrupt_handlers[irq_number])
     {
-        interrupt_handlers[irq_number]();
-        // printk("interrupt_handlers %p\n", interrupt_handlers[irq_number]);
         clear_interrupt_chip(irq_number);
+        // asm volatile("cli");
+        // printk("irq_handler called\n");
+        interrupt_handlers[irq_number]();
     }
     else
     {

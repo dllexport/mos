@@ -5,10 +5,14 @@
 #include "ptrace.h"
 #include "lib/printk.h"
 #include "lib/debug.h"
-static INIT_TASK_STATE init_task_state;
 static mm_struct init_task_mm;
-static TSS_STRUCT init_task_tss;
 static task_struct *init_task;
+static task_struct *current_task;
+task_struct *get_current_task()
+{
+    return current_task;
+}
+
 extern "C" unsigned long do_exit(unsigned long code)
 {
     printk("init2 finished\n");
@@ -73,9 +77,30 @@ extern "C" uint64_t do_execve(struct pt_regs *regs)
     return 0;
 }
 
+
+void schedule()
+{
+    auto cur = get_current_task();
+    auto next = list_prev(&cur->list);
+    auto p = (task_struct *)next;
+    printk("from %d to %d\n", cur->pid, p->pid);
+    if (current_task != p) {
+        struct task_struct *prev = current;
+        current_task = p;
+        switch_to(current_task, p);
+    }
+    
+}
+
 uint64_t init2(uint64_t arg)
 {
+    auto nextt = list_next(&current->list);
+    auto pp = (task_struct *)nextt;
     printk("this is init 2\n");
+    while (1)
+    {
+        printk("this is init 2\n");
+    }
     current->thread->rip = uint64_t(&ret_syscall);
     current->thread->rsp = uint64_t((uint8_t *)current + STACK_SIZE - sizeof(pt_regs));
     auto regs = (pt_regs *)current->thread->rsp;
@@ -90,6 +115,7 @@ uint64_t init2(uint64_t arg)
 
 uint64_t init(uint64_t arg)
 {
+
     printk("this is init thread\n");
 
     create_kernel_thread(&init2, 1, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
@@ -98,10 +124,12 @@ uint64_t init(uint64_t arg)
     auto p = (task_struct *)next;
     printk("current rsp : %x\n", p->thread->rsp0);
     printk("next rsp : %x\n", p->thread->rip);
-
-    switch_to(current, p);
+    current_task = current;
+    asm volatile("sti");
     while (1)
-        ;
+    {
+        // printk("this is init 0\n");
+    }
 }
 
 unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
@@ -118,6 +146,7 @@ unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
 
     list_init(&task->list);
     list_add_to_behind(&init_task->list, &task->list);
+
     task->pid++;
     task->state = TASK_UNINTERRUPTIBLE;
 
@@ -178,7 +207,7 @@ void task_init()
 
     auto ist = (uint64_t)Phy_To_Virt(0x0000000000007c00);
 
-    init_task_tss =
+    tss_struct init_task_tss =
         {.reserved1 = 0,
          .rsp0 = stack_start,
          .rsp1 = stack_start,
@@ -194,6 +223,8 @@ void task_init()
          .reserved3 = 0,
          .reserved4 = 0,
          .io_map_base_addr = 0};
+
+    set_tss(init_task_tss);
 
     init_task = (task_struct *)Phy_To_Virt(page->physical_address);
 
@@ -227,8 +258,6 @@ void task_init()
     // the real stack points stack end - pt_regs
     init_task->state = TASK_RUNNING;
 
-    set_tss(init_task_tss);
-
     asm __volatile__("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
     asm __volatile__("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
     asm __volatile__("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
@@ -236,20 +265,10 @@ void task_init()
     asm __volatile__("retq");
 }
 
-INIT_TASK_STATE &get_init_task_state()
-{
-    return init_task_state;
-}
-
-TSS_STRUCT &get_init_task_tss()
-{
-    return init_task_tss;
-}
-
 extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
 {
 
-    auto &task_tss = get_init_task_tss();
+    auto &task_tss = get_tss();
     task_tss.rsp0 = next->thread->rsp0;
     task_tss.rsp1 = next->thread->rsp0;
     task_tss.rsp2 = next->thread->rsp0;
@@ -263,4 +282,9 @@ extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
 
     __asm__ __volatile__("movq	%0,	%%fs \n\t" ::"a"(next->thread->fs));
     __asm__ __volatile__("movq	%0,	%%gs \n\t" ::"a"(next->thread->gs));
+    
+    current_task = next;
+
+    __asm__ __volatile__("sti");
+
 }

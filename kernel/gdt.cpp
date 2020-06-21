@@ -33,7 +33,7 @@ void set_gdt_tss(int n, void* tss_addr, uint16_t limit, uint16_t attr)
 void gdt_init()
 {
     printk("tss_init\n");
-    set_gdt_tss(7, &TSS::Get(), 103, 0x89);
+    set_gdt_tss(7, &get_tss(), 103, 0x89);
     load_gdt(&gdt_ptr);
 
     load_tr(0x38);

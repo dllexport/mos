@@ -79,30 +79,9 @@ union task_union {
     uint64_t stack[STACK_SIZE / sizeof(uint64_t)];
 } __attribute__((aligned(8))); //8 bytes align
 
-struct INIT_TASK_STATE
-{
-    mm_struct init_mm;
-    thread_struct init_thread;
-};
 
 void task_init();
-
-INIT_TASK_STATE &get_init_task_state();
-TSS_STRUCT &get_init_task_tss();
-
-#define INIT_TASK(tsk)                                  \
-    {                                                   \
-        .state = TASK_UNINTERRUPTIBLE,                  \
-        .flags = PF_KTHREAD,                            \
-        .mm = INIT_TASK_STATE::get_mm_struct(),         \
-        .thread = INIT_TASK_STATE::get_thread_struct(), \
-        .addr_limit = 0xffff800000000000,               \
-        .pid = 0,                                       \
-        .counter = 1,                                   \
-        .signal = 0,                                    \
-        .priority = 0                                   \
-    }
-
+task_struct * get_current_task();
 inline struct task_struct *get_current()
 {
     struct task_struct *current = nullptr;
@@ -122,7 +101,7 @@ inline struct task_struct *get_current()
 #define switch_to(prev, next)                                                                       \
     do                                                                                              \
     {                                                                                               \
-        __asm__ __volatile__("pushq	%%rbp	\n\t"                                                     \
+        __asm__ __volatile__(                                           \
                              "pushq	%%rax	\n\t"                                                     \
                              "movq	%%rsp,	%0	\n\t"                                                  \
                              "movq	%2,	%%rsp	\n\t"                                                  \
@@ -132,22 +111,12 @@ inline struct task_struct *get_current()
                              "jmp	__switch_to	\n\t"                                                 \
                              "1:	\n\t"                                                              \
                              "popq	%%rax	\n\t"                                                      \
-                             "popq	%%rbp	\n\t"                                                      \
                              : "=m"(prev->thread->rsp), "=m"(prev->thread->rip)                     \
                              : "m"(next->thread->rsp), "m"(next->thread->rip), "D"(prev), "S"(next) \
                              : "memory");                                                           \
     } while (0)
 
-inline unsigned long rdmsr(unsigned long address)
-{
-    unsigned int tmp0 = 0;
-    unsigned int tmp1 = 0;
-    asm __volatile__("rdmsr	\n\t"
-                     : "=d"(tmp0), "=a"(tmp1)
-                     : "c"(address)
-                     : "memory");
-    return (unsigned long)tmp0 << 32 | tmp1;
-}
+extern "C" void schedule();
 
 #define MSR_EFER		0xc0000080 /* extended feature register */
 #define MSR_STAR		0xc0000081 /* legacy mode SYSCALL target */
@@ -163,4 +132,15 @@ inline void wrmsr(unsigned long address, unsigned long value)
 {
     asm __volatile__("wrmsr	\n\t" ::"d"(value >> 32), "a"(value & 0xffffffff), "c"(address)
                      : "memory");
+}
+
+inline unsigned long rdmsr(unsigned long address)
+{
+    unsigned int tmp0 = 0;
+    unsigned int tmp1 = 0;
+    asm __volatile__("rdmsr	\n\t"
+                     : "=d"(tmp0), "=a"(tmp1)
+                     : "c"(address)
+                     : "memory");
+    return (unsigned long)tmp0 << 32 | tmp1;
 }
