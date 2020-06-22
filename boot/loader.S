@@ -205,6 +205,7 @@ LongMode:
    call kernel_init
    mov rsp, KERNEL_BIN_BASE_ADDR
    mov rbp, rsp
+
    ; for clang KERNEL_ENTRY_POINT is cxx_global_var_init
    ; so after cxx_global_var_init is call, we call start_kernel
    mov rax, KERNEL_ENTRY_POINT

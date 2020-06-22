@@ -40,7 +40,7 @@ struct NO_ALIGNMENT IDTR
     void *idt_address;
 };
 
-static IDTR idtr = {uint16_t(INTERRUPT_MAX * sizeof(IDT_Descriptor) - 1), Phy_To_Virt(idt)};
+static IDTR idtr = {uint16_t(INTERRUPT_MAX * sizeof(IDT_Descriptor) - 1), idt};
 
 typedef void (*interrupt_handler_t)();
 extern "C"

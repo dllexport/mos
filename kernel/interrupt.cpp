@@ -83,8 +83,8 @@ extern "C"
     void irq15(); // IDE1 传输控制使用
 }
 
-#define CONVERT_ISR_ADDR(i) Phy_To_Virt((void *)(&isr##i))
-#define CONVERT_IRQ_ADDR(i) Phy_To_Virt((void *)(&irq##i))
+#define CONVERT_ISR_ADDR(i) (void *)(&isr##i)
+#define CONVERT_IRQ_ADDR(i) (void *)(&irq##i)
 
 static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned char ist, void *addr)
 {

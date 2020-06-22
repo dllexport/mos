@@ -61,8 +61,6 @@ void schedule()
 
 uint64_t init2(uint64_t arg)
 {
-    auto nextt = list_next(&current->list);
-    auto pp = (task_struct *)nextt;
     printk("this is init 2\n");
     while (1)
     {
@@ -158,7 +156,7 @@ static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t
     regs.cs = KERNEL_CS;
     regs.ss = KERNEL_DS;
     regs.rflags = (1 << 9); // interrupt enable
-    regs.rip = (uint64_t)Phy_To_Virt(kernel_thread_func);
+    regs.rip = (uint64_t)&kernel_thread_func;
 
     return do_fork(&regs, flags | PF_KTHREAD);
 }

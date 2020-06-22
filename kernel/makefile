@@ -1,5 +1,5 @@
 
-CXXFLAGS = -g -mcmodel=large -m64 -std=gnu++17 -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wno-write-strings -fno-stack-protector
+CXXFLAGS = -g -mcmodel=large -ffreestanding -m64 -std=gnu++17 -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -nostdlib 
 COMPILER = g++
 kernel: main.cpp lib/stdint.h lib/string.c lib/string.h
 	
@@ -19,4 +19,4 @@ kernel: main.cpp lib/stdint.h lib/string.c lib/string.h
 	$(COMPILER) $(CXXFLAGS) -c -o timer.o timer.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o main.o main.cpp
 
-	ld -m elf_x86_64 -e start_kernel -Ttext 0x100000 -n -o kernel.bin main.o timer.o lib/debug.o lib/printk.o task.o task_asm.o memory.o gdt.o tss.o interrupt.o interrupt_irq.o interrupt_asm.o lib/string.o lib/no_gnu_property.o
+	ld -m elf_x86_64 -e start_kernel -T kernel.lds -n -o kernel.bin main.o timer.o lib/debug.o lib/printk.o task.o task_asm.o memory.o gdt.o tss.o interrupt.o interrupt_irq.o interrupt_asm.o lib/string.o lib/no_gnu_property.o

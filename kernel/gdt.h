@@ -23,6 +23,6 @@ struct NO_ALIGNMENT GDTP {
 
 // we must translate gdt_table address to virtual 
 // direct mapping 0x00000... -> 0x00000 will be deleted later
-static GDTP gdt_ptr = {uint16_t(80 - 1), Phy_To_Virt(gdt_table)};
+static GDTP gdt_ptr = {uint16_t(80 - 1), gdt_table};
 
 extern "C" void gdt_init();
