@@ -2,3 +2,5 @@
 *.o
 *.bin
 *.lock
+*.out
+out

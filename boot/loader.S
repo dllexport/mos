@@ -171,8 +171,16 @@ loader_start:
    or ebx,0x80000001                 ; - by enabling paging and protection simultaneously.
    mov cr0, ebx                    
  
-   lgdt [GDT.Pointer]                ; Load GDT.Pointer defined below.
+   ;-----------------  打开SSE  ----------------
+   mov eax, cr0
+   and ax, 0xFFFB		;clear coprocessor emulation CR0.EM
+   or ax, 0x2			;set coprocessor monitoring  CR0.MP
+   mov cr0, eax
+   mov eax, cr4
+   or ax, 3 << 9		;set CR4.OSFXSR and CR4.OSXMMEXCPT at the same time
+   mov cr4, eax
 
+   lgdt [GDT.Pointer]                ; Load GDT.Pointer defined below.
    jmp CODE_SEG:LongMode             ; Load CS with 64 bit segment and flush the instruction cache
 
 .error_hlt:		      ;出错则挂起
