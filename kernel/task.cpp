@@ -25,33 +25,7 @@ extern "C" unsigned long do_exit(unsigned long code)
 // then restore the stack to rsp0(stack base)
 // then call the fn
 // then do_exit
-extern "C" void kernel_thread_func(void);
-__asm__(
-    "kernel_thread_func:	\n\t"
-    "	popq	%r15	\n\t"
-    "	popq	%r14	\n\t"
-    "	popq	%r13	\n\t"
-    "	popq	%r12	\n\t"
-    "	popq	%r11	\n\t"
-    "	popq	%r10	\n\t"
-    "	popq	%r9	\n\t"
-    "	popq	%r8	\n\t"
-    "	popq	%rbx	\n\t"
-    "	popq	%rcx	\n\t"
-    "	popq	%rdx	\n\t"
-    "	popq	%rsi	\n\t"
-    "	popq	%rdi	\n\t"
-    "	popq	%rbp	\n\t"
-    "	popq	%rax	\n\t"
-    "	movq	%rax,	%ds	\n\t"
-    "	popq	%rax		\n\t"
-    "	movq	%rax,	%es	\n\t"
-    "	popq	%rax		\n\t"
-    "	addq	$0x38,	%rsp	\n\t"
-    "	movq	%rdx,	%rdi	\n\t"
-    "	callq	*%rbx		\n\t"
-    "	movq	%rax,	%rdi	\n\t"
-    "	callq	do_exit		\n\t");
+extern "C" void kernel_thread_func();
 
 static int create_kernel_thread(uint64_t (*fn)(uint64_t), uint64_t arg, uint64_t flags);
 

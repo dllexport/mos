@@ -1,5 +1,5 @@
 
-CXXFLAGS = -g -m64 -std=gnu++17 -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wno-write-strings -fno-stack-protector
+CXXFLAGS = -g -mcmodel=large -m64 -std=gnu++17 -fno-builtin -fno-exceptions -fno-rtti -fno-threadsafe-statics -Wno-write-strings -fno-stack-protector
 COMPILER = g++
 kernel: main.cpp lib/stdint.h lib/string.c lib/string.h
 	
