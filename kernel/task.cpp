@@ -99,8 +99,7 @@ uint64_t init(uint64_t arg)
 
 unsigned long do_fork(struct pt_regs *regs, unsigned long clone_flags)
 {
-
-    auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
+    auto page = alloc_pages(BUDDY_ZONE_NORMAL_INDEX, 1, PG_PTable_Maped | PG_Kernel | PG_Active);
 
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + 1);
 
@@ -166,8 +165,7 @@ void task_init()
 
     wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48);
 
-    auto page = alloc_pages(1, PG_PTable_Maped | PG_Kernel | PG_Active);
-
+    auto page = alloc_pages(BUDDY_ZONE_NORMAL_INDEX, 1, PG_PTable_Maped | PG_Kernel | PG_Active);
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + PAGE_4K_SIZE);
 
     auto ist = (uint64_t)Phy_To_Virt(0x0000000000007c00);
@@ -192,8 +190,6 @@ void task_init()
     set_tss(init_task_tss);
 
     init_task = (task_struct *)Phy_To_Virt(page->physical_address);
-
-    printk("init task: %x\n", init_task);
 
     memset(init_task, 0, STACK_SIZE);
 

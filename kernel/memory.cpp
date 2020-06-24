@@ -1,8 +1,13 @@
 #include "memory.h"
 #include "lib/string.h"
 #include "lib/printk.h"
+#include "lib/debug.h"
 #include "memory_flag.h"
-void page_init(Page *page, uint64_t flags);
+#include "kernel_memory_map.h"
+#include "buddy_system.h"
+
+void set_page_attributes(Page *page, uint64_t flags);
+Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags);
 
 static E820 e820s[16];
 static uint32_t e820_length;
@@ -10,7 +15,16 @@ static uint64_t total_available_4k_page_length;
 
 void memory_init()
 {
-
+    printk("kernel text_start %p\n", &_kernel_text_start);
+    printk("kernel text_ends %p\n", &_kernel_text_start);
+    printk("kernel data_start %p\n", &_kernel_data_start);
+    printk("kernel data_ends %p\n", &_kernel_data_end);
+    printk("kernel rodata_start %p\n", &_kernel_rodata_start);
+    printk("kernel rodata_ends %p\n", &_kernel_rodata_end);
+    printk("kernel bss_start %p\n", &_kernel_bss_start);
+    printk("kernel bss_end %p\n", &_kernel_bss_end);
+    printk("kernel end %p\n", &_kernel_end);
+    // printk_while("kernel end round %p\n", PAGE_4K_ALIGN(&_kernel_end));
     auto p = (struct E820 *)0xffffff800000090b;
     uint64_t total_physical_memory = 0;
     auto valid_e820_count = 0;
@@ -20,9 +34,6 @@ void memory_init()
         {
             // 记录可用区域信息
             e820s[valid_e820_count].address = p->address;
-            printk("memory_init: %p\n", e820s);
-
-            printk("find zone: %x\n", p->address);
             e820s[valid_e820_count].length = p->length;
 
             e820s[valid_e820_count].type = p->type;
@@ -41,28 +52,22 @@ void memory_init()
     {
         uint64_t start = PAGE_4K_ALIGN(e820s[i].address);
         uint64_t end = ((e820s[i].address + e820s[i].length) >> PAGE_4K_SHIFT) << PAGE_4K_SHIFT;
+        printk("zone %d start: %p end: %p\n", i, start, end);
         if (end <= start)
             continue;
+
         pages_count += (end - start) >> PAGE_4K_SHIFT;
     }
     total_available_4k_page_length = pages_count;
+    printk("total_available_4k_pages: %d\n", pages_count);
 
     auto &memory_desc = MemoryDescriptor::GetInstance();
 
-    memory_desc.mem_bitmap = reinterpret_cast<uint8_t *>(KETNEL_MEM_BITMAP_OFFSET);
-    memory_desc.mem_bitmap_size = pages_count / 8;
+    auto buddies_start_address = KETNEL_MEM_BUDDY_SYSTEM_OFFSET;
 
-    memset(memory_desc.mem_bitmap, 0, memory_desc.mem_bitmap_size);
-
-    memory_desc.pages = reinterpret_cast<Page *>(memory_desc.mem_bitmap + memory_desc.mem_bitmap_size);
-    memory_desc.pages_count = pages_count;
-    memory_desc.pages_size = pages_count * sizeof(Page);
-    memset(memory_desc.pages, 0x0, sizeof(Page) * pages_count);
-
-    memory_desc.zones = reinterpret_cast<Zone *>(memory_desc.mem_bitmap + memory_desc.mem_bitmap_size + memory_desc.pages_size);
-    memory_desc.zones_count = valid_e820_count;
-    memory_desc.zones_size = valid_e820_count * sizeof(Zone);
-    memset(memory_desc.zones, 0x0, sizeof(Zone) * valid_e820_count);
+    memory_desc.buddys_count = valid_e820_count;
+    // memory_desc.zones_size = valid_e820_count * sizeof(Zone);
+    // memset(memory_desc.zones, 0x0, sizeof(Zone) * valid_e820_count);
 
     for (int i = 0; i < e820_length; ++i)
     {
@@ -71,91 +76,102 @@ void memory_init()
         uint64_t end = ((e820s[i].address + e820s[i].length) >> PAGE_4K_SHIFT) << PAGE_4K_SHIFT;
         if (end <= start)
             continue;
-
-        auto &z = memory_desc.zones[i];
-        z.zone_start_address = start;
-        z.zone_end_address = end;
-        z.page_used = 0;
-        z.page_free = (end - start) >> PAGE_4K_SHIFT;
-        z.total_reference_count = 0;
-        z.attribute = 0;
-
-        z.page_length = (end - start) >> PAGE_4K_SHIFT;
-        z.page_group = memory_desc.pages;
-
-        for (int j = 0; j < z.page_length; ++j)
+        auto &z = memory_desc.buddys[i];
+        z = reinterpret_cast<BuddySystem *>(i == 0 ? buddies_start_address : buddies_start_address + memory_desc.buddys[i - 1]->BuddySystemSize());
+        z->physical_start_address = start;
+        z->physical_end_address = end;
+        z->attribute = 0;
+        z->total_reference_count = 0;
+        printk("z.pages_free %d\n", (end - start));
+        z->Construct((end - start) >> PAGE_4K_SHIFT);
+        buddies_start_address += z->BuddySystemSize();
+        printk("buddysystem %d start %p, size: %d bytes\n", i, z, z->BuddySystemSize());
+    }
+    auto buddies_end_address = buddies_start_address;
+    auto pages_start_address = buddies_end_address;
+    // init pages for each buddies
+    for (int i = 0; i < memory_desc.buddys_count; ++i)
+    {
+        auto &z = memory_desc.buddys[i];
+        auto &pages = z->pages;
+        pages = reinterpret_cast<Page *>(i == 0 ? pages_start_address : pages_start_address + memory_desc.buddys[i - 1]->PageSize());
+        printk("zone: %d's pages start at %p size: %d\n", i, pages, z->FreePagesCount());
+        for (int j = 0; j < z->FreePagesCount(); ++j)
         {
-            auto pages = memory_desc.pages + memory_desc.zones[i - 1].page_length + j;
-            pages->zones = &z;
-            pages->physical_address = start + PAGE_4K_SIZE * j;
-            pages->attributes = 0;
-            pages->reference_count = 0;
-            pages->age = 0;
-            // auto which_page = pages->physical_address / PAGE_4K_SIZE;
-            // memory_desc.bitmap_set(which_page, 1);
+            pages[j].buddy = z;
+            pages[j].physical_address = z->physical_start_address + PAGE_4K_SIZE * j;
+            if (j < 5)
+            {
+                printk("idx %d phy %p\n", j, pages[j].physical_address);
+            }
+            pages[j].attributes = 0;
+            pages[j].reference_count = 0;
+            pages[j].age = 0;
         }
     }
 
-    auto end_page_addr = PAGE_4K_ALIGN(memory_desc.EndAddress());
-    auto page_used_count = (end_page_addr - KETNEL_PAGE_OFFSET) / PAGE_4K_SIZE;
-    // printk("end_page_addr: ");
-    // auto page_offset = &memory_desc.pages[page_used_count] - memory_desc.pages;
+    auto page_used_count = (PAGE_4K_ALIGN(&_kernel_end) - (uint64_t)&_kernel_text_start) / PAGE_4K_SIZE;
+    printk("kernel_page_used: %d\n", page_used_count);
+    printk("page 0 at zone 1: %p\n", memory_desc.buddys[1]->pages[0].physical_address);
 
-    // printk_hex(memory_desc.pages[page_used_count].physical_address);
-    // printk("\n");
-    for (int i = 0; i < page_used_count; ++i)
+    for (int i = 0; i < memory_desc.buddys_count && i <= 1; ++i)
     {
-        page_init(&memory_desc.pages[i], PG_PTable_Maped | PG_Kernel_Init | PG_Active | PG_Kernel);
+        auto &z = memory_desc.buddys[i];
+        auto flags = PG_PTable_Maped | PG_Kernel_Init | PG_Active | PG_Kernel;
+        if (z->physical_start_address == 0x0)
+        {
+            // for 0-1M memory we reseved all space
+            alloc_pages(BUDDY_ZONE_LOW_INDEX, z->FreePagesCount(), flags);
+        }
+        else
+        {
+            // for kernel memory we reseved page_used_count
+            alloc_pages(BUDDY_ZONE_NORMAL_INDEX, page_used_count, flags);
+        }
     }
-
     // auto cr3 = Get_CR3();
     // *(uint64_t *)cr3 = 0UL;
     // flush_tlb();
 }
 
-void page_init(Page *page, uint64_t flags)
+void set_page_attributes(Page *page, uint64_t flags)
 {
     if (!page->attributes)
     {
-        auto &memory_desc = MemoryDescriptor::GetInstance();
-        auto page_offset = page - memory_desc.pages;
-        memory_desc.bitmap_set(page_offset, 1);
         page->attributes = flags;
         page->reference_count++;
-        page->zones->page_used++;
-        page->zones->page_free--;
-        page->zones->total_reference_count++;
+        page->buddy->total_reference_count++;
     }
     else if ((page->attributes & PG_Referenced) || (page->attributes & PG_K_Share_To_U) || (flags & PG_Referenced) || (flags & PG_K_Share_To_U))
     {
         page->attributes |= flags;
         page->reference_count++;
-        page->zones->total_reference_count++;
+        page->buddy->total_reference_count++;
     }
     else
     {
-        auto &memory_desc = MemoryDescriptor::GetInstance();
-        auto page_offset = page - memory_desc.pages;
-        memory_desc.bitmap_set(page_offset, 1);
         page->attributes |= flags;
     }
 }
 
-Page *alloc_pages(uint32_t page_count, uint64_t page_flags)
+Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags)
 {
-    const int ZONE_UNMAPED_INDEX = 1;
     auto &memory_desc = MemoryDescriptor::GetInstance();
-    Zone &z = memory_desc.zones[ZONE_UNMAPED_INDEX];
-    auto allocated_bit_start = memory_desc.bitmap_alloc(page_count);
+    auto &z = memory_desc.buddys[buddy_index];
+    printk("about to alloc pages from %p\n", z);
 
-    if (allocated_bit_start == -1)
+    auto allocated_index = z->AllocPages(pages_count);
+
+    if (allocated_index < 0)
         return nullptr;
+    auto allocated_pages = &z->GetPages()[allocated_index];
 
-    auto start_page = &memory_desc.pages[allocated_bit_start];
+    printk("alloc from zone :%d\n", buddy_index);
+    printk("alloc page idx: %d start at: %p physical: %p count: %d\n", allocated_index, allocated_pages, allocated_pages->physical_address, pages_count);
 
-    for (int i = 0; i < page_count; ++i)
+    for (int64_t i = 0; i < pages_count; ++i)
     {
-        page_init(&start_page[i], page_flags);
+        set_page_attributes(&allocated_pages[i], page_flags);
     }
-    return start_page;
+    return allocated_pages;
 }
