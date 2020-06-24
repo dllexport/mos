@@ -43,6 +43,7 @@ private:
 
     uint64_t free_pages_count;
     uint64_t total_pages_count;
+    uint64_t total_avaliable_pages_count;
 
     uint64_t physical_start_address;
     uint64_t physical_end_address;

@@ -23,6 +23,9 @@ void BuddySystem::Construct(uint64_t pages_count)
     unsigned node_size;
     int i;
 
+    this->free_pages_count = pages_count;
+    this->total_avaliable_pages_count = pages_count;
+
     if (!IS_POWER_OF_2(pages_count))
     {
         pages_count = round_up_pow_of_2(pages_count);
@@ -32,8 +35,6 @@ void BuddySystem::Construct(uint64_t pages_count)
 
     // node number is size * 2 - 1, we alloc size * 2
     node_size = pages_count * 2;
-
-    this->free_pages_count = pages_count;
 
     // for every node
     for (i = 0; i < 2 * pages_count - 1; ++i)
@@ -59,7 +60,7 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
     if (this->nodes[index] < pages_count)
         return -1;
 
-    for (node_size = this->free_pages_count; node_size != pages_count; node_size /= 2)
+    for (node_size = this->total_pages_count; node_size != pages_count; node_size /= 2)
     {
         if (this->nodes[LEFT_LEAF(index)] >= pages_count)
             index = LEFT_LEAF(index);
@@ -67,8 +68,8 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
             index = RIGHT_LEAF(index);
     }
 
-    offset = (index + 1) * node_size - this->free_pages_count;
-    if (offset > this->total_pages_count)
+    offset = (index + 1) * node_size - this->total_pages_count;
+    if (offset > this->total_avaliable_pages_count)
     {
         return -1;
     }
