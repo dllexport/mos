@@ -15,7 +15,19 @@ SECTIONS
 	{
 		_kernel_data_start = .;
 		*(.data)
-		
 		_kernel_data_end = .;
 	}
+	.rodata : 
+	{
+		_kernel_rodata_start = .;
+		*(.rodata)
+		_kernel_rodata_end = .;
+	}
+	.bss :
+	{
+		_kernel_bss_start = .;
+		*(.bss)
+		_kernel_bss_end = .;
+	}
+	_kernel_end = .;
 }

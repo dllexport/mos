@@ -3,32 +3,34 @@
 #include "printk.h"
 #include "../memory.h"
 
-constexpr uint64_t start_kernel_base = 0x100000 + KETNEL_PAGE_OFFSET;
+// the rbp when we jump to kernel_start
+constexpr uint64_t start_kernel_base = 0x70000 + KETNEL_PAGE_OFFSET;
 
 static elf_symbol_t elf_symbol;
 
+// elf_addr: the addr where the entire kernel is loaded
 static int get_elf_section_of_symbol_table(uint64_t elf_addr)
 {
     auto elf_header = (Elf64_Ehdr *)elf_addr;
     auto sheader = (Elf64_Shdr *)((uint8_t *)elf_addr + elf_header->e_shoff);
-    // printk("e_shoff %d\n", elf_header->e_shoff);
+    printk("e_shoff %d\n", elf_header->e_shoff);
     auto seg_count = elf_header->e_shnum;
-    // printk("e_shnum %d\n", elf_header->e_shnum);
-    // printk("e_shentsize %d\n", elf_header->e_shentsize);
+    printk("e_shnum %d\n", elf_header->e_shnum);
+    printk("e_shentsize %d\n", elf_header->e_shentsize);
 
     auto find_count = 0;
     for (int i = 0; i < seg_count && find_count < 2; ++i)
     {
         if (sheader[i].sh_type == SHT_SYMTAB)
         {
-            // printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.symtab = (Elf64_Sym *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.symtabsz = sheader[i].sh_size;
             find_count++;
         }
         if (sheader[i].sh_type == SHT_STRTAB)
         {
-            // printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.strtab = (const char *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.strtabsz = sheader[i].sh_size;
             find_count++;
@@ -56,7 +58,7 @@ static const char *elf_lookup_symbol(uint64_t addr)
         uint64_t size = elf_symbol.symtab[i].st_size;
         uint64_t start = elf_symbol.symtab[i].st_value;
         uint64_t end = start + size;
-        
+
         // 通过函数调用地址查到函数的名字
         if ((addr >= start) && (addr < end))
         {
@@ -79,17 +81,17 @@ static void print_stack_trace()
     while (*rbp != start_kernel_base)
     {
         // rip is above the rbp because
-        // call instruction will push rip and 
-        // the function will exec 
+        // call instruction will push rip and
+        // the function will exec
         // push rbp;
-        // mov rsp, rbp; 
+        // mov rsp, rbp;
         rip = rbp + 1;
         // rip points to the stack which it's value *rip is the return address
         // the symbol in elf is mapped at the start of 0x1500
         // but we've shifted the address to kernel space
         // and we now executing with virtual address like 0xffff800000001500
         // so translation from *rip to it's original is needed
-        printk("   [0x%x] %s\n", *rip, elf_lookup_symbol((uint64_t)Virt_To_Phy(*rip)));
+        printk("   [0x%x] %s\n", *rip, elf_lookup_symbol(*rip));
         // rbp points to the current position of rbp on stack
         // it's value *rbp points to the previous one on stack
         // we make rbp points to the previous one on stack
