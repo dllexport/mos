@@ -49,9 +49,6 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
 {
     assert(pages_count >= 1, "pages_count < 1");
 
-    unsigned node_size;
-    unsigned offset = 0;
-
     if (!IS_POWER_OF_2(pages_count))
         pages_count = round_up_pow_of_2(pages_count);
 
@@ -60,7 +57,8 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
     if (this->nodes[index] < pages_count)
         return -1;
 
-    for (node_size = this->total_pages_count; node_size != pages_count; node_size /= 2)
+    auto node_size = this->total_pages_count;
+    for (; node_size != pages_count; node_size /= 2)
     {
         if (this->nodes[LEFT_LEAF(index)] >= pages_count)
             index = LEFT_LEAF(index);
@@ -68,7 +66,7 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
             index = RIGHT_LEAF(index);
     }
 
-    offset = (index + 1) * node_size - this->total_pages_count;
+    auto offset = (index + 1) * node_size - this->total_pages_count;
     if (offset > this->total_avaliable_pages_count)
     {
         return -1;
