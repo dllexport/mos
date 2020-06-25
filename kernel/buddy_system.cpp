@@ -84,6 +84,53 @@ int64_t BuddySystem::AllocPages(uint64_t pages_count)
 
     return offset;
 }
-void BuddySystem::BuddySystem::FreePages(uint64_t page_index)
+int64_t BuddySystem::FreePages(uint64_t offset)
+{
+    unsigned node_size, index = 0;
+    unsigned left_longest, right_longest;
+
+    assert(offset >= 0 && offset < this->total_pages_count, "self && offset >= 0 && offset < self->size");
+
+    node_size = 1;
+    index = offset + this->total_pages_count - 1;
+
+    for (; this->nodes[index]; index = PARENT(index))
+    {
+        node_size *= 2;
+        if (index == 0)
+            return 0;
+    }
+
+    this->nodes[index] = node_size;
+
+    while (index)
+    {
+        index = PARENT(index);
+        node_size *= 2;
+
+        left_longest = this->nodes[LEFT_LEAF(index)];
+        right_longest = this->nodes[RIGHT_LEAF(index)];
+
+        if (left_longest + right_longest == node_size)
+            this->nodes[index] = node_size;
+        else
+            this->nodes[index] = MAX(left_longest, right_longest);
+    }
+    return 1;
+}
+
+int64_t BuddySystem::GetBeginIndex(uint64_t offset)
+{
+    unsigned node_size, index = 0;
+    unsigned left_longest, right_longest;
+
+    assert(offset >= 0 && offset < this->total_pages_count, "self && offset >= 0 && offset < self->size");
+
+    node_size = 1;
+    index = offset + this->total_pages_count - 1;
+
+    return index;
+}
+int64_t BuddySystem::GetEndIndex(uint64_t page_index)
 {
 }

@@ -147,7 +147,7 @@ void set_page_attributes(Page *page, uint64_t flags)
     }
 }
 
-Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags)
+Page *alloc_pages(BUDDY_ZONE buddy_index, uint32_t pages_count, uint64_t page_flags)
 {
     auto &memory_desc = MemoryDescriptor::GetInstance();
     auto &z = memory_desc.buddys[buddy_index];
@@ -156,7 +156,7 @@ Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags
 
     if (allocated_index < 0)
         return nullptr;
-    auto allocated_pages = &z->GetPages()[allocated_index];
+    auto allocated_pages = &z->Pages()[allocated_index];
 
     printk("alloc zone: %d page idx: %d start at: %p physical: %p count: %d end: %p\n", buddy_index, allocated_index, allocated_pages, allocated_pages->physical_address, pages_count, allocated_pages->physical_address + PAGE_4K_SIZE * pages_count);
 
@@ -165,4 +165,18 @@ Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags
         set_page_attributes(&allocated_pages[i], page_flags);
     }
     return allocated_pages;
+}
+
+bool free_pages(Page *pages, uint32_t pages_count)
+{
+    auto buddy = pages->buddy;
+    auto page_index = pages - buddy->Pages();
+    // auto page_begin_index = buddy->GetBeginIndex(page_index);
+    for (int i = 0; i < pages_count; ++i)
+    {
+        if (pages[i].reference_count > 1)
+            return false;
+    }
+    buddy->FreePages(page_index);
+    return true;
 }

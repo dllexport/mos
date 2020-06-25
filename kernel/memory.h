@@ -19,17 +19,17 @@ constexpr uint16_t PAGE_4K_SIZE = (1UL << PAGE_4K_SHIFT);
 // use to mask the low 12 bits
 constexpr uint64_t PAGE_4K_MASK = (~(PAGE_4K_SIZE - 1));
 
-constexpr auto BUDDY_ZONE_LOW_INDEX = 0;
-constexpr auto BUDDY_ZONE_NORMAL_INDEX = 1;
+enum BUDDY_ZONE
+{
+    BUDDY_ZONE_LOW_INDEX = 0,
+    BUDDY_ZONE_NORMAL_INDEX = 1
+};
 
 // round up the addr to 4k boundary
 #define PAGE_4K_ALIGN(addr) (((uint64_t)(addr) + PAGE_4K_SIZE - 1) & PAGE_4K_MASK)
 
 #define Virt_To_Phy(addr) ((uint8_t *)(addr)-PAGE_OFFSET)
 #define Phy_To_Virt(addr) ((uint8_t *)((uint8_t *)(addr) + PAGE_OFFSET))
-
-#define Virt_To_2M_Page(kaddr) (memory_management_struct.pages_struct + (Virt_To_Phy(kaddr) >> PAGE_2M_SHIFT))
-#define Phy_to_2M_Page(kaddr) (memory_management_struct.pages_struct + ((unsigned long)(kaddr) >> PAGE_2M_SHIFT))
 
 #define flush_tlb()               \
     do                            \
@@ -43,7 +43,8 @@ constexpr auto BUDDY_ZONE_NORMAL_INDEX = 1;
             : "memory");          \
     } while (0)
 
-inline uint64_t Get_CR3()
+inline uint64_t
+Get_CR3()
 {
     void *addr;
     __asm__ __volatile__(
@@ -61,11 +62,6 @@ struct NO_ALIGNMENT E820
     uint32_t type;
 };
 
-struct Zone
-{
-    BuddySystem *buddy;
-};
-
 struct MemoryDescriptor
 {
     // zone entry for the entire physical memory
@@ -80,15 +76,8 @@ struct MemoryDescriptor
         static MemoryDescriptor instance;
         return instance;
     }
-
-    uint64_t EndAddress()
-    {
-        return (uint64_t) & this->buddys[this->buddys_count];
-    }
 };
-void memory_init();
 
-extern "C"
-{
-    Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags);
-}
+void memory_init();
+Page *alloc_pages(BUDDY_ZONE buddy_index, uint32_t pages_count, uint64_t page_flags);
+bool free_pages(Page *pages, uint32_t pages_count);

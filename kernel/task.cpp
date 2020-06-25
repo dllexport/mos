@@ -167,6 +167,7 @@ void task_init()
     wrmsr(MSR_STAR, ((uint64_t)0x0020) << 48);
 
     auto page = alloc_pages(BUDDY_ZONE_NORMAL_INDEX, 1, PG_PTable_Maped | PG_Kernel | PG_Active);
+
     auto stack_start = (uint64_t)(Phy_To_Virt(page->physical_address) + PAGE_4K_SIZE);
 
     auto ist = (uint64_t)Phy_To_Virt(0x0000000000007c00);

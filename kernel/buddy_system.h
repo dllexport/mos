@@ -9,17 +9,19 @@ class BuddySystem
 public:
     void Construct(uint64_t page_count);
     int64_t AllocPages(uint64_t page_count);
-    void FreePages(uint64_t page_index);
+    int64_t FreePages(uint64_t page_index);
+    int64_t GetBeginIndex(uint64_t page_index);
+    int64_t GetEndIndex(uint64_t page_index);
 
     uint64_t BuddySystemSize()
     {
         // printk("total_pages_count %d\n", this->total_pages_count);
-        // printk("sizeof(uint64_t) %d\n", sizeof(uint64_t));
         return this->total_pages_count * sizeof(uint64_t) + sizeof(BuddySystem);
     }
+
     uint64_t PageSize();
 
-    inline Page *&GetPages()
+    inline Page *&Pages()
     {
         return this->pages;
     }
