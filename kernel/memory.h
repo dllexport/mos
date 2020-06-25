@@ -6,9 +6,7 @@
 // the virtual memory that kernel start, mapped to physical 0x0
 constexpr uint64_t PAGE_OFFSET = 0xffffff8000000000;
 constexpr uint64_t KETNEL_PAGE_OFFSET = PAGE_OFFSET;                               // alias
-constexpr uint64_t KETNEL_MEM_BITMAP_OFFSET = KETNEL_PAGE_OFFSET + 0x200000;       // alias
 constexpr uint64_t KETNEL_MEM_BUDDY_SYSTEM_OFFSET = KETNEL_PAGE_OFFSET + 0x200000; // alias
-constexpr uint64_t KETNEL_MEM_ZONE_SYSTEM_OFFSET = KETNEL_PAGE_OFFSET + 0x200000;  // alias
 
 constexpr uint16_t ENTRIES_PER_PAGE = 512;
 
@@ -71,7 +69,7 @@ struct Zone
 struct MemoryDescriptor
 {
     // zone entry for the entire physical memory
-    BuddySystem **buddys;
+    BuddySystem *buddys[2];
     // the whole size in bytes that zones takes, contiguous
     uint64_t buddys_size;
     // same as zones_size / sizeof(Zone)

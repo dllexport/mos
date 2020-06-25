@@ -90,6 +90,7 @@ uint64_t init(uint64_t arg)
     printk("current rsp : %x\n", p->thread->rsp0);
     printk("next rsp : %x\n", p->thread->rip);
     current_task = current;
+
     asm volatile("sti");
     while (1)
     {

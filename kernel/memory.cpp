@@ -15,6 +15,9 @@ static uint64_t total_available_4k_page_length;
 
 void memory_init()
 {
+    auto cr3 = Get_CR3();
+    *(uint64_t *)cr3 = 0UL;
+    flush_tlb();
     printk("kernel text_start %p\n", &_kernel_text_start);
     printk("kernel text_ends %p\n", &_kernel_text_start);
     printk("kernel data_start %p\n", &_kernel_data_start);
@@ -59,7 +62,6 @@ void memory_init()
         pages_count += (end - start) >> PAGE_4K_SHIFT;
     }
     total_available_4k_page_length = pages_count;
-    printk("total_available_4k_pages: %d\n", pages_count);
 
     auto &memory_desc = MemoryDescriptor::GetInstance();
 
@@ -71,7 +73,6 @@ void memory_init()
 
     for (int i = 0; i < e820_length; ++i)
     {
-
         uint64_t start = PAGE_4K_ALIGN(e820s[i].address);
         uint64_t end = ((e820s[i].address + e820s[i].length) >> PAGE_4K_SHIFT) << PAGE_4K_SHIFT;
         if (end <= start)
@@ -82,17 +83,18 @@ void memory_init()
         z->physical_end_address = end;
         z->attribute = 0;
         z->total_reference_count = 0;
-        printk("z.pages_free %d\n", (end - start));
         z->Construct((end - start) >> PAGE_4K_SHIFT);
+        printk("z.pages_free %d\n", z->FreePagesCount());
         buddies_start_address += z->BuddySystemSize();
         printk("buddysystem %d start %p, size: %d bytes\n", i, z, z->BuddySystemSize());
     }
+
     auto buddies_end_address = buddies_start_address;
     auto pages_start_address = buddies_end_address;
     // init pages for each buddies
     for (int i = 0; i < memory_desc.buddys_count; ++i)
     {
-        auto &z = memory_desc.buddys[i];
+        auto z = memory_desc.buddys[i];
         auto &pages = z->pages;
         pages = reinterpret_cast<Page *>(i == 0 ? pages_start_address : pages_start_address + memory_desc.buddys[i - 1]->PageSize());
         printk("zone: %d's pages start at %p size: %d\n", i, pages, z->FreePagesCount());
@@ -100,23 +102,17 @@ void memory_init()
         {
             pages[j].buddy = z;
             pages[j].physical_address = z->physical_start_address + PAGE_4K_SIZE * j;
-            if (j < 5)
-            {
-                printk("idx %d phy %p\n", j, pages[j].physical_address);
-            }
             pages[j].attributes = 0;
             pages[j].reference_count = 0;
             pages[j].age = 0;
         }
     }
-
     auto page_used_count = (PAGE_4K_ALIGN(&_kernel_end) - (uint64_t)&_kernel_text_start) / PAGE_4K_SIZE;
     printk("kernel_page_used: %d\n", page_used_count);
-    printk("page 0 at zone 1: %p\n", memory_desc.buddys[1]->pages[0].physical_address);
 
     for (int i = 0; i < memory_desc.buddys_count && i <= 1; ++i)
     {
-        auto &z = memory_desc.buddys[i];
+        auto z = memory_desc.buddys[i];
         auto flags = PG_PTable_Maped | PG_Kernel_Init | PG_Active | PG_Kernel;
         if (z->physical_start_address == 0x0)
         {
@@ -129,9 +125,6 @@ void memory_init()
             alloc_pages(BUDDY_ZONE_NORMAL_INDEX, page_used_count, flags);
         }
     }
-    // auto cr3 = Get_CR3();
-    // *(uint64_t *)cr3 = 0UL;
-    // flush_tlb();
 }
 
 void set_page_attributes(Page *page, uint64_t flags)
@@ -158,7 +151,6 @@ Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags
 {
     auto &memory_desc = MemoryDescriptor::GetInstance();
     auto &z = memory_desc.buddys[buddy_index];
-    printk("about to alloc pages from %p\n", z);
 
     auto allocated_index = z->AllocPages(pages_count);
 
@@ -166,8 +158,7 @@ Page *alloc_pages(uint8_t buddy_index, uint32_t pages_count, uint64_t page_flags
         return nullptr;
     auto allocated_pages = &z->GetPages()[allocated_index];
 
-    printk("alloc from zone :%d\n", buddy_index);
-    printk("alloc page idx: %d start at: %p physical: %p count: %d\n", allocated_index, allocated_pages, allocated_pages->physical_address, pages_count);
+    printk("alloc zone: %d page idx: %d start at: %p physical: %p count: %d end: %p\n", buddy_index, allocated_index, allocated_pages, allocated_pages->physical_address, pages_count, allocated_pages->physical_address + PAGE_4K_SIZE * pages_count);
 
     for (int64_t i = 0; i < pages_count; ++i)
     {

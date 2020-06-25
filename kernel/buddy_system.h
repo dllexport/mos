@@ -7,9 +7,6 @@ class Page;
 class BuddySystem
 {
 public:
-    BuddySystem() = delete;
-    ~BuddySystem() = delete;
-
     void Construct(uint64_t page_count);
     int64_t AllocPages(uint64_t page_count);
     void FreePages(uint64_t page_index);
