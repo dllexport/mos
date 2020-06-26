@@ -1,5 +1,5 @@
 
-CXXFLAGS = --target=x86_64-elf -mno-sse -g -mcmodel=large -fno-builtin -ffreestanding -m64 -std=gnu++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -nostdlib 
+CXXFLAGS = --target=x86_64-elf -mno-sse -g -mcmodel=large -fno-common -fno-builtin -ffreestanding -m64 -std=gnu++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -nostdlib 
 COMPILER = g++
 kernel: main.cpp lib/stdint.h lib/string.c lib/string.h
 	
