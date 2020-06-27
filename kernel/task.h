@@ -74,14 +74,8 @@ struct task_struct
 
 constexpr uint64_t STACK_SIZE = 4096;
 
-union task_union {
-    struct task_struct task;
-    uint64_t stack[STACK_SIZE / sizeof(uint64_t)];
-} __attribute__((aligned(8))); //8 bytes align
-
-
 void task_init();
-task_struct * get_current_task();
+task_struct *get_current_task();
 inline struct task_struct *get_current()
 {
     struct task_struct *current = nullptr;
@@ -98,35 +92,63 @@ inline struct task_struct *get_current()
     "andq	$-4095,%rbx	\n\t"
 
 // params rdi, rsi
-#define switch_to(prev, next)                                                                       \
-    do                                                                                              \
-    {                                                                                               \
-        __asm__ __volatile__(                                           \
-                             "pushq	%%rax	\n\t"                                                     \
-                             "movq	%%rsp,	%0	\n\t"                                                  \
-                             "movq	%2,	%%rsp	\n\t"                                                  \
-                             "leaq	1f(%%rip),	%%rax	\n\t"                                           \
-                             "movq	%%rax,	%1	\n\t"                                                  \
-                             "pushq	%3		\n\t"                                                       \
-                             "jmp	__switch_to	\n\t"                                                 \
-                             "1:	\n\t"                                                              \
-                             "popq	%%rax	\n\t"                                                      \
-                             : "=m"(prev->thread->rsp), "=m"(prev->thread->rip)                     \
-                             : "m"(next->thread->rsp), "m"(next->thread->rip), "D"(prev), "S"(next) \
-                             : "memory");                                                           \
+#define switch_to(prev, next)                                                      \
+    do                                                                             \
+    {                                                                              \
+        __asm__ __volatile__(                                                      \
+            "pushq	%%rax	\n\t"                                                     \
+            "pushq	%%rbp	\n\t"                                                     \
+            "pushq	%%rdi	\n\t"                                                     \
+            "pushq	%%rsi	\n\t"                                                     \
+            "pushq	%%rdx	\n\t"                                                     \
+            "pushq	%%rcx	\n\t"                                                     \
+            "pushq	%%rbx	\n\t"                                                     \
+            "pushq	%%r8	\n\t"                                                      \
+            "pushq	%%r9	\n\t"                                                      \
+            "pushq	%%r10	\n\t"                                                     \
+            "pushq	%%r11	\n\t"                                                     \
+            "pushq	%%r12	\n\t"                                                     \
+            "pushq	%%r13	\n\t"                                                     \
+            "pushq	%%r14	\n\t"                                                     \
+            "pushq	%%r15	\n\t"                                                     \
+            "movq	%%rsp,	%0	\n\t"                                                  \
+            "movq	%2,	%%rsp	\n\t"                                                  \
+            "leaq	1f(%%rip),	%%rax	\n\t"                                           \
+            "movq	%%rax,	%1	\n\t"                                                  \
+            "pushq	%3		\n\t"                                                       \
+            "jmp	__switch_to	\n\t"                                                 \
+            "1:	\n\t"                                                              \
+            "popq	%%r15	\n\t"                                                      \
+            "popq	%%r14	\n\t"                                                      \
+            "popq	%%r13	\n\t"                                                      \
+            "popq	%%r12	\n\t"                                                      \
+            "popq	%%r11	\n\t"                                                      \
+            "popq	%%r10	\n\t"                                                      \
+            "popq	%%r9	\n\t"                                                       \
+            "popq	%%r8	\n\t"                                                       \
+            "popq	%%rbx	\n\t"                                                      \
+            "popq	%%rcx	\n\t"                                                      \
+            "popq	%%rdx	\n\t"                                                      \
+            "popq	%%rdi	\n\t"                                                      \
+            "popq	%%rdi	\n\t"                                                      \
+            "popq	%%rbp	\n\t"                                                      \
+            "popq	%%rax	\n\t"                                                      \
+            : "=m"(prev->thread->rsp), "=m"(prev->thread->rip)                     \
+            : "m"(next->thread->rsp), "m"(next->thread->rip), "D"(prev), "S"(next) \
+            : "memory");                                                           \
     } while (0)
 
 extern "C" void schedule();
 
-#define MSR_EFER		0xc0000080 /* extended feature register */
-#define MSR_STAR		0xc0000081 /* legacy mode SYSCALL target */
-#define MSR_LSTAR		0xc0000082 /* long mode SYSCALL target */
-#define MSR_CSTAR		0xc0000083 /* compat mode SYSCALL target */
-#define MSR_SYSCALL_MASK	0xc0000084 /* EFLAGS mask for syscall */
-#define MSR_FS_BASE		0xc0000100 /* 64bit FS base */
-#define MSR_GS_BASE		0xc0000101 /* 64bit GS base */
-#define MSR_KERNEL_GS_BASE	0xc0000102 /* SwapGS GS shadow */
-#define MSR_TSC_AUX		0xc0000103 /* Auxiliary TSC */
+#define MSR_EFER 0xc0000080           /* extended feature register */
+#define MSR_STAR 0xc0000081           /* legacy mode SYSCALL target */
+#define MSR_LSTAR 0xc0000082          /* long mode SYSCALL target */
+#define MSR_CSTAR 0xc0000083          /* compat mode SYSCALL target */
+#define MSR_SYSCALL_MASK 0xc0000084   /* EFLAGS mask for syscall */
+#define MSR_FS_BASE 0xc0000100        /* 64bit FS base */
+#define MSR_GS_BASE 0xc0000101        /* 64bit GS base */
+#define MSR_KERNEL_GS_BASE 0xc0000102 /* SwapGS GS shadow */
+#define MSR_TSC_AUX 0xc0000103        /* Auxiliary TSC */
 
 inline void wrmsr(unsigned long address, unsigned long value)
 {
