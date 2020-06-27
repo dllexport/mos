@@ -46,8 +46,11 @@ namespace Kernel::VGA
 extern "C"
 {
     void printk(const char *format, ...);
+    void printk_with_spinlock(const char *format, ...);
+    void printk_with_spinlock_cli(const char *format, ...);
 
-    void printk_while(const char *format, ...);
+    void printk_raw(const char *format, ...);
+    void printk_raw_while(const char *format, ...);
 
-    void printk_color(Kernel::VGA::Color back, Kernel::VGA::Color fore, const char *format, ...);
+    void printk_raw_color(Kernel::VGA::Color back, Kernel::VGA::Color fore, const char *format, ...);
 }

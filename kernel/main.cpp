@@ -6,12 +6,13 @@
 #include "lib/printk.h"
 #include "lib/debug.h"
 #include "timer.h"
+#include "spinlock.h"
+
 extern "C" void start_kernel()
 {
-   printk("mos kernel startup...\n");
+   printk_raw("mos kernel startup...\n");
    debug_init();
    memory_init();
-
    gdt_init();
    idt_init();
 

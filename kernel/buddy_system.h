@@ -1,6 +1,5 @@
 #pragma once
 #include "lib/stdint.h"
-#include "lib/printk.h"
 
 class Page;
 
@@ -15,7 +14,7 @@ public:
 
     uint64_t BuddySystemSize()
     {
-        // printk("total_pages_count %d\n", this->total_pages_count);
+        // printk_raw("total_pages_count %d\n", this->total_pages_count);
         return this->total_pages_count * sizeof(uint64_t) + sizeof(BuddySystem);
     }
 

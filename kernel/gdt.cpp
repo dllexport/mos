@@ -11,10 +11,10 @@ static inline void load_gdt(struct GDTP *p)
 
 static inline void load_tr(uint16_t tr)
 {
-    __asm__ __volatile("ltr %0"::"m" (tr));
+    __asm__ __volatile("ltr %0" ::"m"(tr));
 }
 
-void set_gdt_tss(int n, void* tss_addr, uint16_t limit, uint16_t attr)
+void set_gdt_tss(int n, void *tss_addr, uint16_t limit, uint16_t attr)
 {
     auto addr = reinterpret_cast<uint64_t>(tss_addr);
     struct GDT_TSS *ts = (struct GDT_TSS *)(&gdt_table[n]);
@@ -32,11 +32,11 @@ void set_gdt_tss(int n, void* tss_addr, uint16_t limit, uint16_t attr)
 }
 void gdt_init()
 {
-    printk("tss_init\n");
+    printk_raw("tss_init\n");
     set_gdt_tss(7, &get_tss(), 103, 0x89);
     load_gdt(&gdt_ptr);
 
     load_tr(0x38);
     tss_init();
-    printk("gdt_init GDT_PTR %x\n", &gdt_ptr);
+    printk_raw("gdt_init GDT_PTR %x\n", &gdt_ptr);
 }

@@ -29,7 +29,7 @@ void BuddySystem::Construct(uint64_t pages_count)
     if (!IS_POWER_OF_2(pages_count))
     {
         pages_count = round_up_pow_of_2(pages_count);
-        printk("buddy page round %d\n", pages_count);
+        printk_raw("buddy page round %d\n", pages_count);
     }
     this->total_pages_count = pages_count;
 

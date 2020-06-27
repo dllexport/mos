@@ -1,6 +1,9 @@
 #include "printk.h"
 #include "port_ops.h"
 #include "string.h"
+#include "../spinlock.h"
+
+static Spinlock printk_spinlock;
 
 namespace Kernel::VGA
 {
@@ -135,35 +138,46 @@ namespace Kernel::VGA
 
 static int vsprintf(char *buff, const char *format, va_list args);
 
+#define printk_body                       \
+        static char buff[1024];           \
+        va_list args;                     \
+        int i;                            \
+        va_start(args, format);           \
+        i = vsprintf(buff, format, args); \
+        va_end(args);                     \
+        buff[i] = '\0';                   \
+        Kernel::VGA::console_write(buff);
+
+void printk_with_spinlock_cli(const char *format, ...)
+{
+        asm volatile("cli");
+        LockGuard<Spinlock> lg(printk_spinlock);
+        printk_body;
+        asm volatile("sti");
+}
+
 void printk(const char *format, ...)
 {
-        // 避免频繁创建临时变量，内核的栈很宝贵
-        static char buff[1024];
-        va_list args;
-        int i;
-
-        va_start(args, format);
-        i = vsprintf(buff, format, args);
-        va_end(args);
-
-        buff[i] = '\0';
-
-        Kernel::VGA::console_write(buff);
+        asm volatile("cli");
+        printk_body;
+        asm volatile("sti");
 }
-void printk_while(const char *format, ...)
+
+void printk_raw(const char *format, ...)
+{
+        printk_body;
+}
+
+void printk_with_spinlock(const char *format, ...)
+{
+        LockGuard<Spinlock> lg(printk_spinlock);
+        printk_body;
+}
+
+void printk_raw_while(const char *format, ...)
 {
         // 避免频繁创建临时变量，内核的栈很宝贵
-        static char buff[10240];
-        va_list args;
-        int i;
-
-        va_start(args, format);
-        i = vsprintf(buff, format, args);
-        va_end(args);
-
-        buff[i] = '\0';
-
-        Kernel::VGA::console_write(buff);
+        printk_body;
         while (1)
                 ;
 }
