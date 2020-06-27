@@ -68,7 +68,7 @@ loader_start:
    out 0x92,al
 
 
-   mov edi, FREE_SPACE
+   mov edi, FREE_SPACE ; which is 0x9000
    ; Zero out the 16KiB buffer.
    ; Since we are doing a rep stosd, count should be bytes/4.   
    push di                           ; REP STOSD alters DI.
