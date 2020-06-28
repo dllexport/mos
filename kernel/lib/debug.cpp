@@ -78,7 +78,7 @@ static void print_stack_trace()
                  : "=r"(rbp));
 
     // we keep poping stack until reaching start_kernel_base
-    for (int i = 0; i < 8; ++i)
+    for (int i = 0; i < 10 && *rbp != start_kernel_base; ++i)
     // while (*rbp != start_kernel_base)
     {
         // rip is above the rbp because

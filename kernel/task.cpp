@@ -63,7 +63,7 @@ uint64_t init2(uint64_t arg)
 {
     printk("this is init 2\n");
 
-    for (int i = 0; i < 1000; ++i)
+    for (int i = 0; i < 100; ++i)
     {
         printk("2");
     }
@@ -96,13 +96,14 @@ uint64_t init(uint64_t arg)
     current_task = current;
     switch_to(current, p);
 
-    for (int i = 0; i < 1000; ++i)
+    for (int i = 0; i < 100; ++i)
     {
         printk("1");
     }
     printk("1 done\n");
     while (1)
     {
+        panic("done");
     }
 }
 
@@ -229,12 +230,12 @@ void task_init()
     // the real stack points stack end - pt_regs
     init_task->state = TASK_RUNNING;
 
-    asm __volatile__("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
-    asm __volatile__("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
-    asm __volatile__("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
-    asm __volatile__("movq	%0,	%%rbp \n\t" ::"a"(init_task->thread->rsp0));
-    asm __volatile__("push  %0 \n\t" ::"a"(init_task->thread->rip));
-    asm __volatile__("retq");
+    asm volatile("movq	%0,	%%fs \n\t" ::"a"(init_task->thread->fs));
+    asm volatile("movq	%0,	%%gs \n\t" ::"a"(init_task->thread->gs));
+    asm volatile("movq	%0,	%%rsp \n\t" ::"a"(init_task->thread->rsp));
+    asm volatile("movq	%0,	%%rbp \n\t" ::"a"(init_task->thread->rsp0));
+    asm volatile("push  %0 \n\t" ::"a"(init_task->thread->rip));
+    asm volatile("retq");
 }
 
 extern "C" void __switch_to(struct task_struct *prev, struct task_struct *next)
