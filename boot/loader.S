@@ -188,12 +188,10 @@ loader_start:
 
 [BITS 64]      
 LongMode:
-    mov ax, DATA_SEG
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
+   ; only fs gs cs are used in 64 bit mode
+   xor ax, ax
+   mov fs, ax
+   mov gs, ax
 
 ; -------------------------   加载kernel  ----------------------
    mov rax, KERNEL_START_SECTOR        ; kernel.bin所在的扇区号
