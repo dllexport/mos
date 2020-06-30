@@ -105,58 +105,58 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
 
 extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("divide error\n");
+    printk("rsp: %x", rsp);
+    printk("divide error\n");
     while (1)
         ;
 }
 
 extern "C" void handle_debug_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("debug error\n");
+    printk("rsp: %x", rsp);
+    printk("debug error\n");
     while (1)
         ;
 }
 
 extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("mni error");
+    printk("rsp: %x", rsp);
+    printk("mni error");
     while (1)
         ;
 }
 
 extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("\n");
-    printk_raw("nmi error");
+    printk("rsp: %x", rsp);
+    printk("\n");
+    printk("nmi error");
     while (1)
         ;
 }
 extern "C" void handle_int3_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("\n");
-    printk_raw("int3 error");
+    printk("rsp: %x", rsp);
+    printk("\n");
+    printk("int3 error");
     while (1)
         ;
 }
 
 extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("\n");
-    printk_raw("tss error");
+    printk("rsp: %x", rsp);
+    printk("\n");
+    printk("tss error");
     while (1)
         ;
 }
 extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
 {
-    printk_raw("rsp: %x", rsp);
-    printk_raw("\n");
-    printk_raw("page_fault error");
+    printk("rsp: %x", rsp);
+    printk("\n");
+    printk("page_fault error");
     while (1)
         ;
 }
@@ -246,13 +246,13 @@ extern "C" void isr_handler(uint64_t isr_number, uint64_t error_code)
 {
     if (interrupt_handlers[isr_number])
     {
-        printk_raw("interrupt_handlers %p\n", interrupt_handlers[isr_number]);
+        printk("interrupt_handlers %p\n", interrupt_handlers[isr_number]);
     }
     else
     {
         // cpu_hlt();
     }
-    printk_raw_while("isr: %d error_code: %d\n", isr_number, error_code);
+    printk_while("isr: %d error_code: %d\n", isr_number, error_code);
 }
 
 static void clear_interrupt_chip(uint32_t intr_no)
@@ -263,11 +263,11 @@ static void clear_interrupt_chip(uint32_t intr_no)
     // 故大于等于 40 的中断号是由从片处理的
     if (intr_no >= 40)
     {
-        // printk_raw("reset io_pic2");
+        // printk("reset io_pic2");
         // 发送重设信号给从片
         outb(IO_PIC2, 0x20);
     }
-    // printk_raw("reset io_pic1");
+    // printk("reset io_pic1");
     // 发送重设信号给主片
     outb(IO_PIC1, 0x20);
 }
@@ -278,12 +278,12 @@ extern "C" void irq_handler(uint64_t irq_number, uint64_t error_code)
     {
         clear_interrupt_chip(irq_number);
         // asm volatile("cli");
-        // printk_raw("irq_handler called\n");
+        // printk("irq_handler called\n");
         interrupt_handlers[irq_number]();
     }
     else
     {
         // cpu_hlt();
     }
-    // printk_raw("irq: %d error_code: %d\n", irq_number, error_code);
+    // printk("irq: %d error_code: %d\n", irq_number, error_code);
 }

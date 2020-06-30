@@ -10,7 +10,7 @@
 
 extern "C" void start_kernel()
 {
-   printk_raw("mos kernel startup...\n");
+   printk("mos kernel startup...\n");
    debug_init();
    memory_init();
    gdt_init();

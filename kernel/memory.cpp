@@ -18,16 +18,16 @@ void memory_init()
     auto cr3 = Get_CR3();
     *(uint64_t *)cr3 = 0UL;
     flush_tlb();
-    printk_raw("kernel text_start %p\n", &_kernel_text_start);
-    printk_raw("kernel text_ends %p\n", &_kernel_text_start);
-    printk_raw("kernel data_start %p\n", &_kernel_data_start);
-    printk_raw("kernel data_ends %p\n", &_kernel_data_end);
-    printk_raw("kernel rodata_start %p\n", &_kernel_rodata_start);
-    printk_raw("kernel rodata_ends %p\n", &_kernel_rodata_end);
-    printk_raw("kernel bss_start %p\n", &_kernel_bss_start);
-    printk_raw("kernel bss_end %p\n", &_kernel_bss_end);
-    printk_raw("kernel end %p\n", &_kernel_end);
-    // printk_raw_while("kernel end round %p\n", PAGE_4K_ALIGN(&_kernel_end));
+    printk("kernel text_start %p\n", &_kernel_text_start);
+    printk("kernel text_ends %p\n", &_kernel_text_start);
+    printk("kernel data_start %p\n", &_kernel_data_start);
+    printk("kernel data_ends %p\n", &_kernel_data_end);
+    printk("kernel rodata_start %p\n", &_kernel_rodata_start);
+    printk("kernel rodata_ends %p\n", &_kernel_rodata_end);
+    printk("kernel bss_start %p\n", &_kernel_bss_start);
+    printk("kernel bss_end %p\n", &_kernel_bss_end);
+    printk("kernel end %p\n", &_kernel_end);
+    // printk_while("kernel end round %p\n", PAGE_4K_ALIGN(&_kernel_end));
     auto p = (struct E820 *)0xffffff800000090b;
     uint64_t total_physical_memory = 0;
     auto valid_e820_count = 0;
@@ -55,7 +55,7 @@ void memory_init()
     {
         uint64_t start = PAGE_4K_ALIGN(e820s[i].address);
         uint64_t end = ((e820s[i].address + e820s[i].length) >> PAGE_4K_SHIFT) << PAGE_4K_SHIFT;
-        printk_raw("zone %d start: %p end: %p\n", i, start, end);
+        printk("zone %d start: %p end: %p\n", i, start, end);
         if (end <= start)
             continue;
 
@@ -84,9 +84,9 @@ void memory_init()
         z->attribute = 0;
         z->total_reference_count = 0;
         z->Construct((end - start) >> PAGE_4K_SHIFT);
-        printk_raw("z.pages_free %d\n", z->FreePagesCount());
+        printk("z.pages_free %d\n", z->FreePagesCount());
         buddies_start_address += z->BuddySystemSize();
-        printk_raw("buddysystem %d start %p, size: %d bytes\n", i, z, z->BuddySystemSize());
+        printk("buddysystem %d start %p, size: %d bytes\n", i, z, z->BuddySystemSize());
     }
 
     auto buddies_end_address = buddies_start_address;
@@ -97,7 +97,7 @@ void memory_init()
         auto z = memory_desc.buddys[i];
         auto &pages = z->pages;
         pages = reinterpret_cast<Page *>(i == 0 ? pages_start_address : pages_start_address + memory_desc.buddys[i - 1]->PageSize());
-        printk_raw("zone: %d's pages start at %p size: %d\n", i, pages, z->FreePagesCount());
+        printk("zone: %d's pages start at %p size: %d\n", i, pages, z->FreePagesCount());
         for (int j = 0; j < z->FreePagesCount(); ++j)
         {
             pages[j].buddy = z;
@@ -108,7 +108,7 @@ void memory_init()
         }
     }
     auto page_used_count = (PAGE_4K_ALIGN(&_kernel_end) - (uint64_t)&_kernel_text_start) / PAGE_4K_SIZE;
-    printk_raw("kernel_page_used: %d\n", page_used_count);
+    printk("kernel_page_used: %d\n", page_used_count);
 
     for (int i = 0; i < memory_desc.buddys_count && i <= 1; ++i)
     {
@@ -158,7 +158,7 @@ Page *alloc_pages(BUDDY_ZONE buddy_index, uint32_t pages_count, uint64_t page_fl
         return nullptr;
     auto allocated_pages = &z->Pages()[allocated_index];
 
-    printk_raw("alloc zone: %d page idx: %d start at: %p physical: %p count: %d end: %p\n", buddy_index, allocated_index, allocated_pages, allocated_pages->physical_address, pages_count, allocated_pages->physical_address + PAGE_4K_SIZE * pages_count);
+    printk("alloc zone: %d page idx: %d start at: %p physical: %p count: %d end: %p\n", buddy_index, allocated_index, allocated_pages, allocated_pages->physical_address, pages_count, allocated_pages->physical_address + PAGE_4K_SIZE * pages_count);
 
     for (int64_t i = 0; i < pages_count; ++i)
     {

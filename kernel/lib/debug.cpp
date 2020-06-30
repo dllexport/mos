@@ -13,24 +13,24 @@ static int get_elf_section_of_symbol_table(uint64_t elf_addr)
 {
     auto elf_header = (Elf64_Ehdr *)elf_addr;
     auto sheader = (Elf64_Shdr *)((uint8_t *)elf_addr + elf_header->e_shoff);
-    //printk_raw("e_shoff %d\n", elf_header->e_shoff);
+    //printk("e_shoff %d\n", elf_header->e_shoff);
     auto seg_count = elf_header->e_shnum;
-    //    printk_raw("e_shnum %d\n", elf_header->e_shnum);
-    //printk_raw("e_shentsize %d\n", elf_header->e_shentsize);
+    //    printk("e_shnum %d\n", elf_header->e_shnum);
+    //printk("e_shentsize %d\n", elf_header->e_shentsize);
 
     auto find_count = 0;
     for (int i = 0; i < seg_count && find_count < 2; ++i)
     {
         if (sheader[i].sh_type == SHT_SYMTAB)
         {
-            // printk_raw("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            // printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.symtab = (Elf64_Sym *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.symtabsz = sheader[i].sh_size;
             find_count++;
         }
         if (sheader[i].sh_type == SHT_STRTAB)
         {
-            //printk_raw("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
+            //printk("find SHT_SYMTAB at: %d\n", sheader[i].sh_offset);
             elf_symbol.strtab = (const char *)((uint8_t *)elf_header + sheader[i].sh_offset);
             elf_symbol.strtabsz = sheader[i].sh_size;
             find_count++;
@@ -42,7 +42,7 @@ static int get_elf_section_of_symbol_table(uint64_t elf_addr)
 
 void debug_init()
 {
-    printk_raw("debug_init\n");
+    printk("debug_init\n");
     get_elf_section_of_symbol_table(0xffffff8000000000 + 0x70000);
 }
 
@@ -93,7 +93,7 @@ static void print_stack_trace()
         // and we now executing with virtual address like 0xffff800000001500
         // so translation from *rip to it's original is needed
         auto symbol = elf_lookup_symbol(*rip);
-        printk_raw("   [%x] %s\n", *rip, symbol);
+        printk("   [%x] %s\n", *rip, symbol);
         // rbp points to the current position of rbp on stack
         // it's value *rbp points to the previous one on stack
         // we make rbp points to the previous one on stack
@@ -104,9 +104,9 @@ static void print_stack_trace()
 void panic(const char *msg)
 {
     asm volatile("cli");
-    printk_raw("*** System panic: %s\n", msg);
+    printk("*** System panic: %s\n", msg);
     print_stack_trace();
-    printk_raw("***\n");
+    printk("***\n");
 
     // 致命错误发生后打印栈信息后停止在这里
     while (1)

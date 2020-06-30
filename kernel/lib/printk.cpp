@@ -158,14 +158,10 @@ void printk_with_spinlock_cli(const char *format, ...)
 
 void printk(const char *format, ...)
 {
+        asm volatile("pushf");
         asm volatile("cli");
         printk_body;
-        asm volatile("sti");
-}
-
-void printk_raw(const char *format, ...)
-{
-        printk_body;
+        asm volatile("popf");
 }
 
 void printk_with_spinlock(const char *format, ...)
@@ -174,7 +170,7 @@ void printk_with_spinlock(const char *format, ...)
         printk_body;
 }
 
-void printk_raw_while(const char *format, ...)
+void printk_while(const char *format, ...)
 {
         // 避免频繁创建临时变量，内核的栈很宝贵
         printk_body;

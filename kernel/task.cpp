@@ -15,7 +15,7 @@ task_struct *get_current_task()
 
 extern "C" unsigned long do_exit(unsigned long code)
 {
-    printk_raw("init2 finished\n");
+    printk("init2 finished\n");
 
     while (1)
         ;
@@ -55,7 +55,7 @@ void schedule()
 {
     auto next = list_prev(&current->list);
     auto p = (task_struct *)next;
-    // printk_raw("from %d to %d\n", current->pid, p->pid);
+    // printk("from %d to %d\n", current->pid, p->pid);
     switch_to(current, p);
 }
 
@@ -86,13 +86,13 @@ uint64_t init2(uint64_t arg)
 uint64_t init(uint64_t arg)
 {
 
-    printk_raw("this is init thread\n");
+    printk("this is init thread\n");
 
     create_kernel_thread(&init2, 1, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
     auto next = list_next(&current->list);
     auto p = (task_struct *)next;
-    printk_raw("current rsp : %x\n", p->thread->rsp0);
-    printk_raw("next rsp : %x\n", p->thread->rip);
+    printk("current rsp : %x\n", p->thread->rsp0);
+    printk("next rsp : %x\n", p->thread->rip);
     current_task = current;
     switch_to(current, p);
 
