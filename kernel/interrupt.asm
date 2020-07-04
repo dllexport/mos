@@ -25,7 +25,7 @@
 
 [BITS 64]      
 SECTION .text
-    
+global int_ret
 int_ret:
 
     pop r15
@@ -52,6 +52,7 @@ int_ret:
 
     o64 iret
 
+global int_with_ec
 int_with_ec:
 
     push rbp

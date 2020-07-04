@@ -15,12 +15,11 @@ extern "C" void start_kernel()
    memory_init();
    gdt_init();
    idt_init();
-
-   timer_init(100);
-   auto i = *(uint64_t*)0xffffffff77778888;
+   timer_init(500);
 
    task_init();
-
    while (1)
-      ;
+   {
+      asm volatile("hlt");
+   }
 }

@@ -105,6 +105,7 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
 
 extern "C" {
     void page_fault_handler(uint64_t error_code);
+    void keyboard_irq_handler(uint64_t error_code);
 }
 
 void idt_init()
@@ -143,8 +144,11 @@ void idt_init()
     outb(0xA1, 0x01);
 
     // 设置OCW1 设置主从片允许中断
-    outb(0x21, 0x0);
-    outb(0xA1, 0x0);
+    outb(0x21, 0xfd);
+    outb(0xA1, 0xff);
+    
+    // outb(0x21, 0x0);
+    // outb(0xA1, 0x0);
 
     set_intr_gate(0, 1, CONVERT_ISR_ADDR(0));
     set_intr_gate(1, 1, CONVERT_ISR_ADDR(1));
@@ -198,6 +202,7 @@ void idt_init()
     set_intr_gate(47, 1, CONVERT_IRQ_ADDR(15));
 
     register_interrupt_handler(14, page_fault_handler);
+    register_interrupt_handler(33, keyboard_irq_handler);
     load_idt(&idtr);
 }
 

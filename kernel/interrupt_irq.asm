@@ -34,77 +34,8 @@ IRQ  13,    45  ; 协处理器使用
 IRQ  14,    46  ; IDE0 传输控制使用
 IRQ  15,    47  ; IDE1 传输控制使用
 
-extern schedule
-int_ret:
-
-    pop r15
-    pop r14
-    pop r13
-    pop r12
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-
-    pop rbx
-    pop rcx
-    pop rdx
-    pop rsi
-    pop rdi
-    pop rbp
-
-    pop rax
-    mov ds, ax
-    pop rax
-    mov es, ax
-
-    pop rax ; handler
-    pop rax ; original
-
-    ;skip _ISR_CODE and _ERROR_CODE
-    add rsp, 0x10
-
-    o64 iret
-
+extern int_ret
+extern int_with_ec
 extern irq_handler
-
-int_with_ec:
-    ; save es
-    mov rax, es
-    push rax
-    ; save ds
-    mov rax, ds
-    push rax
-    ;set kernel code gdt seg
-    mov ax, 0x10
-    mov es, ax
-    mov ds, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-
-    push rbp
-    push rdi
-    push rsi
-    push rdx
-    push rcx
-    push rbx
-
-    push r8
-    push r9
-    push r10
-    push r11
-    push r12
-    push r13
-    push r14
-    push r15
-
-    ;mov rsi, [rsp + _ERROR_CODE]
-    ;mov rdi, rsp
-    mov rdi, [rsp + _ISR_CODE]
-    mov rsi, [rsp + _ERROR_CODE]
-    mov rdx, [rsp + _HANDLER]
-    call rdx
-    jmp int_ret
 
 

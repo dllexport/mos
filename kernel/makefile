@@ -12,6 +12,7 @@ kernel:
 
 	$(COMPILER) $(CXXFLAGS) -c -o build/string.o lib/string.c 
 	$(COMPILER) $(CXXFLAGS) -c -o build/page_fault.o interrupt/page_fault.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o build/keyboard_irq.o interrupt/keyboard_irq.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/interrupt.o interrupt.cpp 
 	$(COMPILER) $(CXXFLAGS) -c -o build/gdt.o gdt.cpp 
 	$(COMPILER) $(CXXFLAGS) -c -o build/tss.o tss.cpp
@@ -23,4 +24,4 @@ kernel:
 	$(COMPILER) $(CXXFLAGS) -c -o build/timer.o timer.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/main.o main.cpp
 
-	ld -m elf_x86_64 -e start_kernel -T kernel.lds -n -o kernel.bin $(BUILD_DIR)/main.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/page_fault.o $(BUILD_DIR)/printk.o $(BUILD_DIR)/task.o $(BUILD_DIR)/task_asm.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/buddy_system.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/tss.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/interrupt_irq.o $(BUILD_DIR)/interrupt_asm.o $(BUILD_DIR)/string.o $(BUILD_DIR)/no_gnu_property.o
+	ld -m elf_x86_64 -e start_kernel -T kernel.lds -n -o kernel.bin $(BUILD_DIR)/main.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/page_fault.o $(BUILD_DIR)/printk.o $(BUILD_DIR)/task.o $(BUILD_DIR)/task_asm.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/buddy_system.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/tss.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/interrupt_irq.o $(BUILD_DIR)/interrupt_asm.o $(BUILD_DIR)/string.o $(BUILD_DIR)/no_gnu_property.o $(BUILD_DIR)/keyboard_irq.o

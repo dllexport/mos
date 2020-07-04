@@ -4,6 +4,5 @@
 extern "C"
 {
     void timer_callback();
-
     void timer_init(uint32_t frequency);
 }

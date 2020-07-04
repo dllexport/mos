@@ -34,7 +34,7 @@ namespace Kernel::VGA
     void console_write(char *cstr);
 
     // 屏幕打印一个以 \0 结尾的字符串  带颜色
-    void console_write_color(char *cstr, Color back, Color fore);
+    void console_putc_color(char c, Color back = Color::rc_black, Color fore = Color::rc_white);
 
     // 屏幕输出一个十六进制的整型数
     void console_write_hex(uint32_t n, Color back, Color fore);
