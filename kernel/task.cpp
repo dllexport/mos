@@ -62,7 +62,6 @@ void schedule()
 uint64_t init2(uint64_t arg)
 {
     printk("this is init 2\n");
-
     for (int i = 0; i < 100; ++i)
     {
         printk("2");

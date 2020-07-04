@@ -13,17 +13,15 @@
     _RSI	equ	0x58
     _RDI	equ	0x60
     _RBP	equ	0x68
-    _DS	equ	0x70
-    _ES	equ	0x78
-    _HANDLER	equ	0x80
-    _RAX	equ	0x88
-    _ISR_CODE	equ	0x90
-    _ERROR_CODE	equ	0x98
-    _RIP	equ	0xa0
-    _CS	equ	0xa8
-    _RFLAGS	equ	0xb0
-    _OLDRSP	equ	0xb8
-    _OLDSS	equ	0xc0
+    _HANDLER	equ	0x70
+    _RAX	equ	0x78
+    _ISR_CODE	equ	0x80
+    _ERROR_CODE	equ	0x88
+    _RIP	equ	0x90
+    _CS	equ	0x98
+    _RFLAGS	equ	0xa0
+    _OLDRSP	equ	0xa8
+    _OLDSS	equ	0xb0
 
 [BITS 64]      
 SECTION .text
@@ -46,13 +44,8 @@ int_ret:
     pop rdi
     pop rbp
 
-    pop rax
-    mov ds, ax
-    pop rax
-    mov es, ax
-
     pop rax ; handler
-    pop rax ; original
+    pop rax ; original rax
 
     ;skip _ISR_CODE and _ERROR_CODE
     add rsp, 0x10
@@ -60,16 +53,6 @@ int_ret:
     o64 iret
 
 int_with_ec:
-    ; save es
-    mov rax, es
-    push rax
-    ; save ds
-    mov rax, ds
-    push rax
-    ;set kernel code gdt seg
-    mov rax, 0x10
-    mov es, rax
-    mov ds, rax
 
     push rbp
     push rdi
@@ -87,8 +70,6 @@ int_with_ec:
     push r14
     push r15
 
-    ;mov rsi, [rsp + _ERROR_CODE]
-    ;mov rdi, rsp
     mov rdi, [rsp + _ISR_CODE]
     mov rsi, [rsp + _ERROR_CODE]
     mov rdx, [rsp + _HANDLER]

@@ -103,89 +103,46 @@ static inline void _set_gate(IDT_Descriptor_Type type, unsigned int n, unsigned 
 #define set_intr_gate(n, ist, addr) _set_gate(INTERRUPT, n, ist, addr);
 #define set_system_gate(n, ist, addr) _set_gate(SYSTEM, n, ist, addr);
 
-extern "C" void handle_devide_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("divide error\n");
-    while (1)
-        ;
-}
-
-extern "C" void handle_debug_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("debug error\n");
-    while (1)
-        ;
-}
-
-extern "C" void handle_mni_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("mni error");
-    while (1)
-        ;
-}
-
-extern "C" void handle_nmi_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("\n");
-    printk("nmi error");
-    while (1)
-        ;
-}
-extern "C" void handle_int3_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("\n");
-    printk("int3 error");
-    while (1)
-        ;
-}
-
-extern "C" void handle_tss_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("\n");
-    printk("tss error");
-    while (1)
-        ;
-}
-extern "C" void handle_page_fault_error(uint64_t rsp, uint64_t error_code)
-{
-    printk("rsp: %x", rsp);
-    printk("\n");
-    printk("page_fault error");
-    while (1)
-        ;
+extern "C" {
+    void page_fault_handler(uint64_t error_code);
 }
 
 void idt_init()
 {
     bzero(interrupt_handlers, INTERRUPT_MAX * sizeof(interrupt_handler_t));
-    // 初始化主片、从片
+ 
+    /*                   ____________                          ____________
+    Real Time Clock --> |            |   Timer -------------> |            |
+    ACPI -------------> |            |   Keyboard-----------> |            |      _____
+    Available --------> | Secondary  |----------------------> | Primary    |     |     |
+    Available --------> | Interrupt  |   Serial Port 2 -----> | Interrupt  |---> | CPU |
+    Mouse ------------> | Controller |   Serial Port 1 -----> | Controller |     |_____|
+    Co-Processor -----> |            |   Parallel Port 2/3 -> |            |
+    Primary ATA ------> |            |   Floppy disk -------> |            |
+    Secondary ATA ----> |____________|   Parallel Port 1----> |____________|
+    */
+    // 初始化主片、从片的ICW1
     // 0001 0001
     outb(0x20, 0x11);
     outb(0xA0, 0x11);
 
-    // 设置主片 IRQ 从 0x20(32) 号中断开始
+    // 设置主片ICW2 IRQ 从 0x20(32) 号中断开始 
     outb(0x21, 0x20);
 
-    // 设置从片 IRQ 从 0x28(40) 号中断开始
+    // 设置从片ICW2 IRQ 从 0x28(40) 号中断开始
     outb(0xA1, 0x28);
 
-    // 设置主片 IR2 引脚连接从片
+    // 设置主片ICW3 IR2 引脚连接从片
     outb(0x21, 0x04);
 
-    // 告诉从片输出引脚和主片 IR2 号相连
+    // 设置从片ICW3 告诉从片输出引脚和主片 IR2 号相连
     outb(0xA1, 0x02);
 
-    // 设置主片和从片按照 8086 的方式工作
+    // 设置ICW4 设置主片和从片按照 x86 的方式工作
     outb(0x21, 0x01);
     outb(0xA1, 0x01);
 
-    // 设置主从片允许中断
+    // 设置OCW1 设置主从片允许中断
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
 
@@ -230,6 +187,7 @@ void idt_init()
     set_intr_gate(37, 1, CONVERT_IRQ_ADDR(5));
     set_intr_gate(38, 1, CONVERT_IRQ_ADDR(6));
     set_intr_gate(39, 1, CONVERT_IRQ_ADDR(7));
+
     set_intr_gate(40, 1, CONVERT_IRQ_ADDR(8));
     set_intr_gate(41, 1, CONVERT_IRQ_ADDR(9));
     set_intr_gate(42, 1, CONVERT_IRQ_ADDR(10));
@@ -239,6 +197,7 @@ void idt_init()
     set_intr_gate(46, 1, CONVERT_IRQ_ADDR(14));
     set_intr_gate(47, 1, CONVERT_IRQ_ADDR(15));
 
+    register_interrupt_handler(14, page_fault_handler);
     load_idt(&idtr);
 }
 
@@ -247,6 +206,7 @@ extern "C" void isr_handler(uint64_t isr_number, uint64_t error_code)
     if (interrupt_handlers[isr_number])
     {
         printk("interrupt_handlers %p\n", interrupt_handlers[isr_number]);
+        interrupt_handlers[isr_number](error_code);
     }
     else
     {
@@ -257,6 +217,7 @@ extern "C" void isr_handler(uint64_t isr_number, uint64_t error_code)
 
 static void clear_interrupt_chip(uint32_t intr_no)
 {
+    // 设置OCW3
     // 发送中断结束信号给 PICs
     // 按照我们的设置，从 32 号中断起为用户自定义中断
     // 因为单片的 Intel 8259A 芯片只能处理 8 级中断
@@ -279,7 +240,7 @@ extern "C" void irq_handler(uint64_t irq_number, uint64_t error_code)
         clear_interrupt_chip(irq_number);
         // asm volatile("cli");
         // printk("irq_handler called\n");
-        interrupt_handlers[irq_number]();
+        interrupt_handlers[irq_number](error_code);
     }
     else
     {

@@ -42,7 +42,7 @@ struct NO_ALIGNMENT IDTR
 
 static IDTR idtr = {uint16_t(INTERRUPT_MAX * sizeof(IDT_Descriptor) - 1), idt};
 
-typedef void (*interrupt_handler_t)();
+typedef void (*interrupt_handler_t)(uint64_t error_code);
 extern "C"
 {
     void idt_init();

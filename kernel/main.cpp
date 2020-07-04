@@ -17,6 +17,7 @@ extern "C" void start_kernel()
    idt_init();
 
    timer_init(100);
+   auto i = *(uint64_t*)0xffffffff77778888;
 
    task_init();
 

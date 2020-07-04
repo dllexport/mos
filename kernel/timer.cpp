@@ -4,11 +4,12 @@
 #include "interrupt.h"
 #include "task.h"
 
-void timer_callback()
+void timer_callback(uint64_t error_code)
 {
     static uint32_t tick = 0;
     schedule();
 }
+
 void timer_init(uint32_t frequency)
 {
     // 注册时间相关的处理函数
