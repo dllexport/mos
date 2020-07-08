@@ -156,11 +156,112 @@ void printk_with_spinlock_cli(const char *format, ...)
         asm volatile("sti");
 }
 
+void putchar(char ch)
+{
+        Kernel::VGA::console_putc_color(ch);
+}
+
+void putvalue(int64_t val)
+{
+        std::cout << val;
+}
+
+void putvalue(uint64_t val)
+{
+        std::cout << val;
+}
+
+void putvalue(char *val)
+{
+        while (val != '\0')
+        {
+                Kernel::VGA::console_putc_color(*val);
+        }
+}
+
+void putvalue(void *val)
+{
+        
+        std::cout << val;
+}
+
+void printkre(const char *format, ...)
+{
+
+        static const auto peek = [format](uint64_t count = 1) {
+                return format[count];
+        };
+
+        va_list args;
+        va_start(args, format);
+        char ch = *format;
+        while (ch)
+        {
+                if (ch == '%')
+                {
+                        switch (peek())
+                        {
+                        // int64_t
+                        case 'd':
+                        {
+                                ++format;
+                                putvalue(va_arg(args, int64_t));
+                                break;
+                        }
+                        case 's':
+                        {
+                                ++format;
+                                putvalue(va_arg(args, char *));
+                                break;
+                        }
+                        case 'u':
+                        {
+                                ++format;
+                                putvalue(va_arg(args, uint64_t));
+                                break;
+                        }
+                        case 'f':
+                        {
+                                ++format;
+                                putvalue(va_arg(args, double));
+                                break;
+                        }
+                        case 'x':
+                        case 'p':
+                        {
+                                ++format;
+                                putvalue(va_arg(args, void *));
+                                break;
+                        }
+                        default:
+                        {
+                                // output '%'
+                                putchar(ch);
+                        }
+                        }
+                }
+                else
+                {
+                        // output ch
+                        putchar(ch);
+                }
+                ch = *(++format);
+        }
+        va_end(args);
+}
+
 void printk(const char *format, ...)
 {
         asm volatile("pushf");
         asm volatile("cli");
-        printk_body;
+        static char buff[1024];
+        va_list args;
+        int current = 0;
+        va_start(args, format);
+        current = do_printk(current, format, args);
+        va_end(args);
+        buff[current] = '\0';
+        Kernel::VGA::console_write(buff);
         asm volatile("popf");
 }
 
