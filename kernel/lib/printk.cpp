@@ -237,9 +237,10 @@ void putvalue(void *val)
         }
 }
 
-void printk(const char *format, ...) 
+void printk(const char *format, ...)
 {
-
+        asm volatile("pushf");
+        asm volatile("cli");
         static const auto peek = [](char *current, uint64_t count = 1) {
                 return current[count];
         };
@@ -301,12 +302,8 @@ void printk(const char *format, ...)
                 ch = *(++pformat);
         }
         va_end(args);
-}
 
-void printk_with_spinlock(const char *format, ...)
-{
-        LockGuard<Spinlock> lg(printk_spinlock);
-        printk;
+        asm volatile("popf");
 }
 
 void printk_while(const char *format, ...)
@@ -316,6 +313,7 @@ void printk_while(const char *format, ...)
         while (1)
                 ;
 }
+
 #define is_digit(c) ((c) >= '0' && (c) <= '9')
 
 static int skip_atoi(const char **s)

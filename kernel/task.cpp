@@ -62,13 +62,10 @@ void schedule()
 uint64_t init2(uint64_t arg)
 {
     printk("this is init 2\n");
-    for (int i = 0; i < 100; ++i)
-    {
-        printk("2");
-    }
-    printk("2 done\n");
+
     while (1)
     {
+        printk("2");
     }
     current->thread->rip = uint64_t(&ret_syscall);
     current->thread->rsp = uint64_t((uint8_t *)current + STACK_SIZE - sizeof(pt_regs));
@@ -95,14 +92,9 @@ uint64_t init(uint64_t arg)
     current_task = current;
     switch_to(current, p);
 
-    for (int i = 0; i < 100; ++i)
-    {
-        printk("1");
-    }
-    printk("1 done\n");
     while (1)
     {
-        panic("done");
+        printk("1");
     }
 }
 

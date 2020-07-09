@@ -144,11 +144,11 @@ void idt_init()
     outb(0xA1, 0x01);
 
     // 设置OCW1 设置主从片允许中断
-    outb(0x21, 0xfd);
-    outb(0xA1, 0xff);
+    // outb(0x21, 0xfd);
+    // outb(0xA1, 0xff);
     
-    // outb(0x21, 0x0);
-    // outb(0xA1, 0x0);
+    outb(0x21, 0x0);
+    outb(0xA1, 0x0);
 
     set_intr_gate(0, 1, CONVERT_ISR_ADDR(0));
     set_intr_gate(1, 1, CONVERT_ISR_ADDR(1));
