@@ -88,7 +88,7 @@ loader_start:
    ; so the pml4 and pde is 111111111 111111111 (nine 1)
    ; the last one, which is 111111111
    mov [es:di + 0xff8], eax                  ; Store the value of EAX as the first PML4E.
- 
+
    ; Build the Page Directory Pointer Table.
    lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
    or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER ; Or EAX with the flags - present flag, writable flag.
@@ -99,16 +99,6 @@ loader_start:
    lea eax, [es:di + 0x3000]         ; Put the address of the Page Table in to EAX.
    or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER ; Or EAX with the flags - present flag, writeable flag.
    mov [es:di + 0x2000], eax         ; Store to value of EAX as the first PDE.
-
-   ; for 2-4m
-   lea eax, [es:di + 0x4000]         ; Put the address of the Page Table in to EAX.
-   or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER ; Or EAX with the flags - present flag, writeable flag.
-   mov [es:di + 0x2008], eax         ; Store to value of EAX as the first PDE.
-
-   ; for 4-6m
-   lea eax, [es:di + 0x5000]         ; Put the address of the Page Table in to EAX.
-   or eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER ; Or EAX with the flags - present flag, writeable flag.
-   mov [es:di + 0x2010], eax         ; Store to value of EAX as the first PDE.
 
    push di                           ; Save DI for the time being.
    lea di, [di + 0x3000]             ; Point DI to the page table.
@@ -121,26 +111,6 @@ loader_start:
    add di, 8
    cmp eax, 0x200000                 ; If we did all 2MiB, end.
    jb .build2MTable
-
-   mov di, FREE_SPACE + 0x4000           ; Point DI to the page table.
-   mov eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER    ; Move the flags into EAX - and point it to 0x0000.
-   xor eax, 0x200000
-.build4MTable:
-   mov [es:di], eax
-   add eax, 0x1000
-   add di, 8
-   cmp eax, 0x400000                 ; If we did all 2MiB, end.
-   jb .build4MTable
-
-   mov di, FREE_SPACE + 0x5000           ; Point DI to the page table.
-   mov eax, PAGE_PRESENT | PAGE_WRITE | PAGE_USER    ; Move the flags into EAX - and point it to 0x0000.
-   xor eax, 0x400000
-.build6MTable:
-   mov [es:di], eax
-   add eax, 0x1000
-   add di, 8
-   cmp eax, 0x600000                 ; If we did all 2MiB, end.
-   jb .build6MTable
 
    pop di                            ; Restore DI.
  

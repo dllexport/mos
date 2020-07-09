@@ -1,6 +1,6 @@
 
-CXXFLAGS = --target=x86_64-elf -mno-sse -fPIE -g -mcmodel=kernel -fno-common -fno-builtin -ffreestanding -m64 -std=gnu++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -nostdlib 
-COMPILER = clang++-10
+CXXFLAGS = -mno-sse -fPIE -g -mcmodel=large -fno-common -fno-builtin -ffreestanding -m64 -std=gnu++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -nostdlib 
+COMPILER = g++
 BUILD_DIR = build
 
 kernel:
@@ -17,6 +17,7 @@ kernel:
 	$(COMPILER) $(CXXFLAGS) -c -o build/gdt.o gdt.cpp 
 	$(COMPILER) $(CXXFLAGS) -c -o build/tss.o tss.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/memory.o memory.cpp
+	$(COMPILER) $(CXXFLAGS) -c -o build/page.o page.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/buddy_system.o buddy_system.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/task.o task.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/printk.o lib/printk.cpp
@@ -24,4 +25,4 @@ kernel:
 	$(COMPILER) $(CXXFLAGS) -c -o build/timer.o timer.cpp
 	$(COMPILER) $(CXXFLAGS) -c -o build/main.o main.cpp
 
-	ld -m elf_x86_64 -e start_kernel -T kernel.lds -n -o kernel.bin $(BUILD_DIR)/main.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/page_fault.o $(BUILD_DIR)/printk.o $(BUILD_DIR)/task.o $(BUILD_DIR)/task_asm.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/buddy_system.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/tss.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/interrupt_irq.o $(BUILD_DIR)/interrupt_asm.o $(BUILD_DIR)/string.o $(BUILD_DIR)/no_gnu_property.o $(BUILD_DIR)/keyboard_irq.o
+	ld -m elf_x86_64 -e start_kernel -T kernel.lds -n -o kernel.bin $(BUILD_DIR)/main.o $(BUILD_DIR)/timer.o $(BUILD_DIR)/page.o $(BUILD_DIR)/debug.o $(BUILD_DIR)/page_fault.o $(BUILD_DIR)/printk.o $(BUILD_DIR)/task.o $(BUILD_DIR)/task_asm.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/buddy_system.o $(BUILD_DIR)/gdt.o $(BUILD_DIR)/tss.o $(BUILD_DIR)/interrupt.o $(BUILD_DIR)/interrupt_irq.o $(BUILD_DIR)/interrupt_asm.o $(BUILD_DIR)/string.o $(BUILD_DIR)/no_gnu_property.o $(BUILD_DIR)/keyboard_irq.o
