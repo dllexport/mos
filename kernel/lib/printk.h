@@ -46,6 +46,7 @@ namespace Kernel::VGA
 extern "C"
 {
     void printk(const char *format, ...);
+
     void printk_with_spinlock(const char *format, ...);
     void printk_with_spinlock_cli(const char *format, ...);
 

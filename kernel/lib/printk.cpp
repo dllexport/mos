@@ -161,75 +161,128 @@ void putchar(char ch)
         Kernel::VGA::console_putc_color(ch);
 }
 
-void putvalue(int64_t val)
-{
-        std::cout << val;
-}
-
-void putvalue(uint64_t val)
-{
-        std::cout << val;
-}
-
 void putvalue(char *val)
 {
-        while (val != '\0')
+        while (*(val++) != '\0')
         {
                 Kernel::VGA::console_putc_color(*val);
         }
 }
+char *int2hexstr(uint64_t val, int &end_index)
+{
+        static const auto hex_table = "0123456789abcdef";
+        static char buff[32];
+        int i = 0;
+        while (val != 0)
+        {
+                auto hex = val % 16;
+                val = val / 16;
+                buff[i++] = hex_table[hex];
+        }
+        end_index = i;
+        return buff;
+}
+
+char *int2str(uint64_t val, int &end_index)
+{
+        static char buff[32];
+        int i = 0;
+        while (val != 0)
+        {
+                auto hex = val % 10;
+                val = val / 10;
+                buff[i++] = hex + '0';
+        }
+        end_index = i;
+        return buff;
+}
+
+void putvalue(uint64_t val)
+{
+        int end_idx;
+        auto buff = int2str(val, end_idx);
+        for (int i = end_idx; i >= 0; --i)
+        {
+                Kernel::VGA::console_putc_color(buff[i]);
+        }
+}
+
+void putvalue(int64_t val)
+{
+        if (val < 0)
+        {
+                Kernel::VGA::console_putc_color('-');
+                putvalue(uint64_t(-val));
+                return;
+        }
+
+        putvalue(uint64_t(val));
+}
 
 void putvalue(void *val)
 {
-        
-        std::cout << val;
+        int end_idx;
+        auto buff = int2hexstr(uint64_t(val), end_idx);
+
+        Kernel::VGA::console_putc_color('0');
+        Kernel::VGA::console_putc_color('x');
+        auto padding = 16 - end_idx;
+        while (padding--)
+        {
+                Kernel::VGA::console_putc_color('0');
+        }
+        for (int i = end_idx; i >= 0; --i)
+        {
+                Kernel::VGA::console_putc_color(buff[i]);
+        }
 }
 
-void printkre(const char *format, ...)
+void printk(const char *format, ...) 
 {
 
-        static const auto peek = [format](uint64_t count = 1) {
-                return format[count];
+        static const auto peek = [](char *current, uint64_t count = 1) {
+                return current[count];
         };
 
         va_list args;
         va_start(args, format);
+        auto pformat = const_cast<char *>(format);
         char ch = *format;
         while (ch)
         {
                 if (ch == '%')
                 {
-                        switch (peek())
+                        switch (peek(pformat))
                         {
                         // int64_t
                         case 'd':
                         {
-                                ++format;
-                                putvalue(va_arg(args, int64_t));
+                                ++pformat;
+                                putvalue((int64_t)4);
                                 break;
                         }
                         case 's':
                         {
-                                ++format;
+                                ++pformat;
                                 putvalue(va_arg(args, char *));
                                 break;
                         }
                         case 'u':
                         {
-                                ++format;
+                                ++pformat;
                                 putvalue(va_arg(args, uint64_t));
                                 break;
                         }
-                        case 'f':
-                        {
-                                ++format;
-                                putvalue(va_arg(args, double));
-                                break;
-                        }
+                        // case 'f':
+                        // {
+                        //         ++format;
+                        //         putvalue(va_arg(args, double));
+                        //         break;
+                        // }
                         case 'x':
                         case 'p':
                         {
-                                ++format;
+                                ++pformat;
                                 putvalue(va_arg(args, void *));
                                 break;
                         }
@@ -245,30 +298,15 @@ void printkre(const char *format, ...)
                         // output ch
                         putchar(ch);
                 }
-                ch = *(++format);
+                ch = *(++pformat);
         }
         va_end(args);
-}
-
-void printk(const char *format, ...)
-{
-        asm volatile("pushf");
-        asm volatile("cli");
-        static char buff[1024];
-        va_list args;
-        int current = 0;
-        va_start(args, format);
-        current = do_printk(current, format, args);
-        va_end(args);
-        buff[current] = '\0';
-        Kernel::VGA::console_write(buff);
-        asm volatile("popf");
 }
 
 void printk_with_spinlock(const char *format, ...)
 {
         LockGuard<Spinlock> lg(printk_spinlock);
-        printk_body;
+        printk;
 }
 
 void printk_while(const char *format, ...)
